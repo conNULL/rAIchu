@@ -1,5 +1,6 @@
 import webbrowser
 import websocket
+import ssl
 import time
 import _thread
 
@@ -28,9 +29,11 @@ def on_open(ws):
 
 if __name__ == "__main__":
     websocket.enableTrace(True)
-    ws = websocket.WebSocketApp("ws://sim.smogon.com:8000/showdown/websocket",
+    ws = websocket.WebSocketApp("wss://sim2.psim.us/showdown/websocket",
+    #ws = websocket.WebSocketApp("ws://sim.smogon.com:8000/showdown/websocket",
                               on_message = on_message,
                               on_error = on_error,
                               on_close = on_close)
     ws.on_open = on_open
     ws.run_forever()
+    tag = "battle-gen7randombattle-"
