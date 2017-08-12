@@ -6,6 +6,7 @@ import _thread
 import json
 import random
 from enum import Enum
+import requests
 
 class MoveType(Enum):
     NONE = 0
@@ -75,8 +76,13 @@ def on_message(ws, message):
     global battle_tag
     global move_required
     
-    
-    if not in_battle:
+
+    print(message)
+    if '|challstr|' in message:
+        challstr = message[10:]
+        print(challstr)
+        login(challstr, ws)
+    elif not in_battle:
         response = message.split(battle_tag)
         battle_tag += response[1].split('\n')[0]
         webbrowser.open("https://play.pokemonshowdown.com/" + battle_tag)
@@ -85,8 +91,19 @@ def on_message(ws, message):
 
     else:
         update_battle_info(message)
-    print(message)
 
+def login(challstr, ws):
+    
+    f = open('login.txt', 'r').readlines()
+    username = f[0][:-1]
+    password = f[1]
+    
+    r = requests.post('https://play.pokemonshowdown.com/action.php', data={'act': 'login', 'name': username, 'pass' : password, 'challstr' : challstr})
+    print(r.status_code, r.reason)
+    assertion = r.text.split('"assertion":"')[1][:-2]
+    ws.send('|/trn ' + username + ',0,' + assertion)
+    ws.send('|/battle!')
+    
 def on_error(ws, error):
     print(error)
 
@@ -104,7 +121,6 @@ def on_open(ws):
         
         while not in_battle:
             time.sleep(1)
-            ws.send('|/battle!')
         for i in range(100):
             time.sleep(10)
             if move_required != MoveType.NONE:
