@@ -100,29 +100,29 @@ def on_message(ws, message):
     global logged_in
     global battles
     
-    
-    
-  
+        
     if logged_in:
             
         battle_tag = message.split('\n')[0]
         battle_id = battle_tag.split(Battle.tag)[1]
-        print('BATTLE:', battle_id)
-        
-        if battle_id not in battles.keys():
+        if len(battle_id == 9):
             
-            new_battle = Battle(battle_id)        
-            battles[battle_id] = new_battle
+            print('BATTLE:', battle_id)
             
-        elif '|choice|move batonpass|' in message or '|choice||move uturn' in message:
-            battles[battle_id].move_required = MoveType.BATTLE_SWITCH
+            if battle_id not in battles.keys():
+                
+                new_battle = Battle(battle_id)        
+                battles[battle_id] = new_battle
+                
+            elif '|choice|move batonpass|' in message or '|choice||move uturn' in message:
+                battles[battle_id].move_required = MoveType.BATTLE_SWITCH
+                
+            elif (username + '\'s rating:') in message and battle_tag in message:
+                ws.send('|/leave ' + battle_tag)
+                del battles[battle_id]
+                ws.send('|/battle!')
             
-        elif (username + '\'s rating:') in message and battle_tag in message:
-            ws.send('|/leave ' + battle_tag)
-            del battles[battle_id]
-            ws.send('|/battle!')
-        
-        battles[battle_id].update_battle_info(message)
+            battles[battle_id].update_battle_info(message)
             
     elif '|challstr|' in message:
         challstr = message[10:]
