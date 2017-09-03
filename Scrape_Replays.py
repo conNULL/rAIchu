@@ -3,37 +3,40 @@ import os
 import requests
 from enum import Enum
 import time
-
-class SearchType(Enum):
+from RAIchu_Enums import SearchType, ScrapeReturnCode
     
-    #Can save a lot but very slowly
-    LINEAR_UP = 0
-    LINEAR_DOWN = 1
-    
-    #Saves 50 replays very quickly (some ids are available on the website)
-    RECENT = 2
-    
-def save_replay_text(battle_id, base_url, base_ofile):
+def save_replay_text(battle_id, base_url, base_ofile, min_turns):
     
     id = str(battle_id)
     r = requests.get(base_url + id)
     
     if r.status_code != 200:
         #print('replay for', battle_id, 'does not exist!')
-        return False
+        return ScrapeReturnCode.NOT_FOUND
+        
     filename = base_ofile + id + '.txt'
     if os.path.isfile(filename):
-        print(filename, 'already exists!')
-        return False
+        print(filename, 'Already exists!')
+        return ScrapeReturnCode.ALREADY_EXISTS
     
-    log = pq(base_url + id)[0].find_class('log')[0].text.split('|turn|')
+    log = pq(base_url + id)[0].find_class('log')[0].text
+    
+    if log is None:
+        print('No data for', battle_id)
+        return ScrapeReturnCode.NOT_ENOUGH_TURNS
+    
+    split_log = log.split('|turn|')
+    if len(split_log) < min_turns:
+        print('Battle', battle_id, 'had only', len(split_log), 'turns')
+        return ScrapeReturnCode.NOT_ENOUGH_TURNS
+        
     file = open(filename, 'w', encoding = 'utf-8')
-    for line in log:
+    for line in split_log:
         if line[0] != '|':
             file.write('\n')
         file.write(line)
     file.close()
-    print('replay for', battle_id, 'saved!')
+    print('Replay for', battle_id, 'saved!')
     return True
 
 
@@ -50,12 +53,15 @@ TYPE = SearchType.RECENT
 NUM_TO_SAVE = 10 #minimum
 
 #Time to wait before doing recent check again
-WAIT_TIME = 90 #15 minutes
+WAIT_TIME = 900 #15 minutes
 
 #Maximum number of ids to try in a linear search
 MAX_TO_CHECK = 10000
 
-REPLAYS_TO_SAVE = 100
+#Don't save replays with less than this many turns. Not really usable data.
+MIN_TURNS = 15
+
+REPLAYS_TO_SAVE = 500
 
 if not os.path.exists(OUTPUT_DIRECTORY):
     os.mkdir(OUTPUT_DIRECTORY)
@@ -73,7 +79,7 @@ if TYPE == SearchType.LINEAR_UP or TYPE == SearchType.LINEAR_DOWN:
     while saved < NUM_TO_SAVE and tried < MAX_TO_CHECK:
         
         tried += 1
-        if save_replay_text(replay_id, BASE_URL, OUTPUT_DIRECTORY+'/'+OUTPUT_FILE_BASE):
+        if save_replay_text(replay_id, BASE_URL, OUTPUT_DIRECTORY+'/'+OUTPUT_FILE_BASE, MIN_TURNS):
             saved += 1
         replay_id += inc
  
@@ -86,13 +92,15 @@ elif TYPE == SearchType.RECENT:
         ids = [k[:9] for k in html.text.split('href="/gen7randombattle-')[1:]]
         
         for replay_id in ids:
-            if save_replay_text(replay_id, BASE_URL, OUTPUT_DIRECTORY+'/'+OUTPUT_FILE_BASE):
+            status = save_replay_text(replay_id, BASE_URL, OUTPUT_DIRECTORY+'/'+OUTPUT_FILE_BASE, MIN_TURNS)
+            if status == ScrapeReturnCode.SAVED :
                 saved += 1
-            else:
+            elif status == ScrapeReturnCode.ALREADY_EXISTS:
                 replay_id = ids[saved-1]
                 break
         #Only wait if there more replays need to be saved.
         if saved < NUM_TO_SAVE:
+            print('waiting', WAIT_TIME/60, 'minutes before trying again...')
             time.sleep(WAIT_TIME)
         else:
             done = True
