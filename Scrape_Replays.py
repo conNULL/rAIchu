@@ -37,7 +37,7 @@ def save_replay_text(battle_id, base_url, base_ofile, min_turns):
         file.write(line)
     file.close()
     print('Replay for', battle_id, 'saved!')
-    return True
+    return ScrapeReturnCode.SAVED
 
 
 BASE_URL = 'https://replay.pokemonshowdown.com/gen7randombattle-'
@@ -50,7 +50,7 @@ START_BATTLE_ID = 624870638
 #Recent or Linear
 TYPE = SearchType.RECENT
 
-NUM_TO_SAVE = 10 #minimum
+NUM_TO_SAVE = 100 #minimum
 
 #Time to wait before doing recent check again
 WAIT_TIME = 900 #15 minutes
@@ -61,7 +61,6 @@ MAX_TO_CHECK = 10000
 #Don't save replays with less than this many turns. Not really usable data.
 MIN_TURNS = 15
 
-REPLAYS_TO_SAVE = 500
 
 if not os.path.exists(OUTPUT_DIRECTORY):
     os.mkdir(OUTPUT_DIRECTORY)
@@ -90,18 +89,20 @@ elif TYPE == SearchType.RECENT:
         html = requests.get('https://replay.pokemonshowdown.com/search/', params=args)
         
         ids = [k[:9] for k in html.text.split('href="/gen7randombattle-')[1:]]
-        
+        cur_saved = 0
         for replay_id in ids:
             status = save_replay_text(replay_id, BASE_URL, OUTPUT_DIRECTORY+'/'+OUTPUT_FILE_BASE, MIN_TURNS)
             if status == ScrapeReturnCode.SAVED :
                 saved += 1
+                cur_saved += 1
             elif status == ScrapeReturnCode.ALREADY_EXISTS:
-                replay_id = ids[saved-1]
+                replay_id = ids[cur_saved-1]
                 break
         #Only wait if there more replays need to be saved.
         if saved < NUM_TO_SAVE:
             print('waiting', WAIT_TIME/60, 'minutes before trying again...')
             time.sleep(WAIT_TIME)
+            
         else:
             done = True
         
