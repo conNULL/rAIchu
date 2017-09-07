@@ -19,7 +19,7 @@ def on_message(ws, message):
     global logged_in
     global battles
     
-        
+    print(message)
     if logged_in and Battle.tag in message:
         
         battle_tag = message.split('\n')[0]
@@ -39,7 +39,7 @@ def on_message(ws, message):
             elif (username + '\'s rating:') in message and battle_tag in message:
                 ws.send('|/leave ' + battle_tag)
                 del battles[battle_id]
-                ws.send('|/battle!')
+                #ws.send('|/battle!')
             
             battles[battle_id].update_battle_info(message)
             
@@ -47,8 +47,8 @@ def on_message(ws, message):
         challstr = message[10:]
         print(challstr)
         logged_in = login(challstr, ws)
-        
-    print(message)
+    print('--------------------------------')
+    
 
 def login(challstr, ws):
     
