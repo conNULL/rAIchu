@@ -53,7 +53,7 @@ TYPE = SearchType.RECENT
 NUM_TO_SAVE = 100 #minimum
 
 #Time to wait before doing recent check again
-WAIT_TIME = 900 #15 minutes
+WAIT_TIME = 1200 #20 minutes
 
 #Maximum number of ids to try in a linear search
 MAX_TO_CHECK = 10000

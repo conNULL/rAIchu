@@ -32,7 +32,9 @@ def on_message(ws, message):
                 
                 new_battle = Battle(battle_id)        
                 battles[battle_id] = new_battle
-                
+            elif username + ' has' in message and 'seconds left' in message:
+
+                battles[battle_id].move_required = MoveType.BATTLE_ACTION
             elif '|choice|move batonpass|' in message or '|choice||move uturn' in message:
                 battles[battle_id].move_required = MoveType.BATTLE_SWITCH
                 

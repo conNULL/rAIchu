@@ -24,8 +24,13 @@ class Battle():
         Battle.ws = web_socket
         Battle.ai = ai
         Battle.tag = tag
+        Battle.load_resources()
 
-
+    def load_resources():
+        f = open('move_dict.txt', 'r')
+        Battle.possible_moves = json.load(f)
+        f.close()
+        
     def make_move(self):
         
         if self.move_required == MoveType.NONE:
@@ -75,7 +80,7 @@ class Battle():
             
             if '|move|p' + self.info['opp_id'] in message:
                 line = message.split('|move|p' + self.info['opp_id']+'a: ')[1]
-                move = line.split('|')[1]
+                move = line.split('|')[1].lower().replace(' ', '')
                 self.info['opp_pokemon'][self.info['opp_active']]['moves'].add(move)
                 
             if '|switch|p' + self.info['opp_id'] in message:
@@ -90,6 +95,9 @@ class Battle():
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
+                    name = opp_active[0].lower().replace(' ', '')
+                    if name in Battle.possible_moves.keys():
+                        self.info['opp_pokemon'][index]['possible_moves'] = Battle.possible_moves[name]
                 else:  
                     index = self.opp_pokemon.index(opp_active[0])
                     
@@ -102,7 +110,7 @@ class Battle():
             if '|-start|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-start|p' + self.info['opp_id'])[1:]
                 for line in status_message:
-                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[10:line.index('\n')].split('|')[2])
+                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[10:line.index('\n')].split('|')[1])
                     
             if '|-end|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-end|p' + self.info['opp_id'])[1:]
