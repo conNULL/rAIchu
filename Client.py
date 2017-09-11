@@ -118,6 +118,7 @@ if __name__ == "__main__":
     NUM_BATTLES = 1
     TAG = 'battle-gen7randombattle-'
     AI = AIType.RANDOM
+    DATA_DIRECTORY = 'Battle_data'
     
     websocket.enableTrace(True)
     ws = websocket.WebSocketApp("wss://sim2.psim.us/showdown/websocket",
@@ -127,5 +128,5 @@ if __name__ == "__main__":
     ws.on_open = on_open
     battles = {}
     Battle.initialize(ws, AI,TAG)
-    BattleMove.initialize()
+    BattleMove.initialize(DATA_DIRECTORY)
     ws.run_forever()

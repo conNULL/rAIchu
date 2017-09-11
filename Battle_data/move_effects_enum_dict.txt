@@ -36,7 +36,7 @@
     "steel" : 34,
     "water" : 35,
     "silvally" : 36,
-    "burn" : 37,
+    "brn" : 37,
     "par" : 38,
     "slp" : 39,
     "frz" : 40,
