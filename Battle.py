@@ -20,15 +20,19 @@ class Battle():
         self.first_info = False
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
         
-    def initialize(web_socket, ai, tag):
+    def initialize(web_socket, ai, tag, DATA_DIRECTORY):
         Battle.ws = web_socket
         Battle.ai = ai
         Battle.tag = tag
-        Battle.load_resources()
+        Battle.load_resources(DATA_DIRECTORY)
 
-    def load_resources():
-        f = open('move_dict.txt', 'r')
+    def load_resources(DATA_DIRECTORY):
+        f = open(DATA_DIRECTORY + '/move_dict.txt', 'r')
         Battle.possible_moves = json.load(f)
+        f.close()
+        
+        f = open(DATA_DIRECTORY + '/pokemon_stats_dict.txt', 'r')
+        Battle.pokemon_stats = json.load(f)
         f.close()
         
     def make_move(self):
@@ -86,15 +90,18 @@ class Battle():
             if '|switch|p' + self.info['opp_id'] in message:
                 line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1]
                 opp_active = line[:line.index('\n')].split('|')
+                level = int(opp_active[1].split(', ')[1][1:])
                 
                 if not opp_active[0] in self.opp_pokemon:
                     index = len(self.opp_pokemon)
                     self.opp_pokemon.append(opp_active[0])
                     self.info['opp_pokemon'][index]['ident'] = opp_active[0]
-                    self.info['opp_pokemon'][index]['details'] = opp_active[1]
+                    #self.info['opp_pokemon'][index]['details'] = opp_active[1]
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
+                    self.info['opp_pokemon'][index]['level'] = level
+                    self.info['opp_pokemon'][index]['stats'] = Battle.calculate_stats(Battle.pokemon_dict[opp_active[0]]['baseStats'], level)
                     name = opp_active[0].lower().replace(' ', '')
                     if name in Battle.possible_moves.keys():
                         self.info['opp_pokemon'][index]['possible_moves'] = Battle.possible_moves[name]
@@ -132,3 +139,16 @@ class Battle():
     def reset_battle_info(self):
         
         self.battle_info = {}
+        
+    def calculate_stats(base_stats, level):
+        
+        stats = {}
+        for k in base_stats:
+            if k == 'hp':
+                stats[k] = ((2*base_stats[k] + 52)*level/100) + level + 10
+            else:
+
+                stats[k] = ((2*base_stats[k] + 52)*level/100) + 5
+                
+        return stats
+                

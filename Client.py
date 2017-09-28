@@ -127,6 +127,6 @@ if __name__ == "__main__":
                               on_close = on_close)
     ws.on_open = on_open
     battles = {}
-    Battle.initialize(ws, AI,TAG)
+    Battle.initialize(ws, AI,TAG, DATA_DIRECTORY)
     BattleMove.initialize(DATA_DIRECTORY)
     ws.run_forever()
