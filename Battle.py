@@ -8,6 +8,7 @@ import random
 from enum import Enum
 import requests
 from RAIchu_Enums import MoveType, AIType
+from BattleMove import BattleMove
 
 class Battle():
     
@@ -74,6 +75,10 @@ class Battle():
             json_message = json.loads(message.split('request|')[1])
             self.info['pokemon'] =  json_message['side']['pokemon']
             self.info['active'] = json_message['active'][0]
+
+            for k in range(len(self.info['pokemon'])):
+                self.info['pokemon'][k]['type'] = Battle.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
+                
             if not self.first_info:
                 self.info['id'] = self.info['pokemon'][0]['ident'][1]
                 self.info['opp_id'] = str(3-int(self.info['id']))
@@ -88,7 +93,7 @@ class Battle():
                 self.info['opp_pokemon'][self.info['opp_active']]['moves'].add(move)
                 
             if '|switch|p' + self.info['opp_id'] in message:
-                line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1]
+                line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1].lower()
                 opp_active = line[:line.index('\n')].split('|')
                 level = int(opp_active[1].split(', ')[1][1:])
                 
@@ -101,7 +106,8 @@ class Battle():
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
                     self.info['opp_pokemon'][index]['level'] = level
-                    self.info['opp_pokemon'][index]['stats'] = Battle.calculate_stats(Battle.pokemon_dict[opp_active[0]]['baseStats'], level)
+                    self.info['opp_pokemon'][index]['type'] = Battle.pokemon_stats[opp_active[0]]['types']
+                    self.info['opp_pokemon'][index]['stats'] = Battle.calculate_stats(Battle.pokemon_stats[opp_active[0]]['baseStats'], level)
                     name = opp_active[0].lower().replace(' ', '')
                     if name in Battle.possible_moves.keys():
                         self.info['opp_pokemon'][index]['possible_moves'] = Battle.possible_moves[name]
@@ -145,10 +151,13 @@ class Battle():
         stats = {}
         for k in base_stats:
             if k == 'hp':
-                stats[k] = ((2*base_stats[k] + 52)*level/100) + level + 10
+                stats[k] = ((2*base_stats[k] + 52)*level//100) + level + 10
             else:
-
-                stats[k] = ((2*base_stats[k] + 52)*level/100) + 5
+                stats[k] = ((2*base_stats[k] + 52)*level//100) + 5
                 
         return stats
+        
+    
+            
+        
                 

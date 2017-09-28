@@ -25,3 +25,12 @@ class ScrapeReturnCode(Enum):
     ALREADY_EXISTS = 1
     NOT_ENOUGH_TURNS = 2
     SAVED = 3
+    
+class PredictionType(Enum):
+    
+    MAX_DAMAGE = 0
+    MIN_DAMAGE = 1
+    BEST_CASE = 2
+    WORST_CASE = 3
+    EXPECTED = 4
+    RANDOM = 5

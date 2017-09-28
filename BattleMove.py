@@ -15,6 +15,10 @@ class BattleMove():
         BattleMove.effects = json.load(f)
         f.close()
         
+        f = open(BASE + '/typechart.txt', 'r')
+        BattleMove.typechart = json.load(f)
+        f.close()
+        
     def get_move_vector(move):
         
         vec = [0] * len(BattleMove.effects_enum)
