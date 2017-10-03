@@ -17,6 +17,8 @@ class Battle():
         self.id = id
         self.info = {}
         self.opp_pokemon = []
+        self.pok_map = {}
+        self.ret_pok_map = {}
         self.move_required = MoveType.NONE
         self.first_info = False
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
@@ -62,40 +64,52 @@ class Battle():
             
             for i in range(len(self.info['pokemon'])):
                 if self.info['pokemon'][i]['active'] == False and self.info['pokemon'][i]['condition'] != 0:
-                    moves.append('switch ' + str(i+1))
+                    moves.append('switch ' + self.ret_pok_map[self.info['pokemon'][i]['orig_ident']])
         if self.move_required == MoveType.BATTLE_ACTION:
             for i in range(len(self.info['active_pokemon']['moves'])):
                 if not self.info['active_pokemon']['moves'][i]['disabled']:
                     moves.append('move ' + str(i+1))
-                
+        # else:
+        #     for i in range(len(self.info['pokemon'])):
+        #         if self.info['pokemon'][i]['active'] == False and self.info['pokemon'][i]['condition'] != 0:
+        #             moves.append('switch ' + self.ret_pok_map[self.info['pokemon'][i]['orig_ident']])
+        # 
         return moves
             
 
     def update_battle_info(self, message):
        
         if 'Can\'t switch:' in message:
-            print('wat')
-        if '|request|' in message:
+            print('error--------------------')
+        if '|request|{' in message:
                         
             json_message = json.loads(message.split('request|')[1])
+            
+            #get original order for sending commands
+            self.ret_pok_map = {}
+            for k in range(len(json_message['side']['pokemon'])):
+                self.ret_pok_map[json_message['side']['pokemon'][k]['ident']] = str(k+1)
                 
+            #maintain relative order for maintaining state
+            json_message['side']['pokemon'].sort(key=lambda x: x['ident'])
             
             if not self.first_info:                
 
-                self.info['pokemon'] =  json_message['side']['pokemon']                    
+                self.info['pokemon'] =  json_message['side']['pokemon'].copy()                  
                 self.info['id'] = self.info['pokemon'][0]['ident'][1]
                 
                 for k in range(len(self.info['pokemon'])):
-
-                    self.info['pokemon'][k]['ident'] = json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '')
+                    self.info['pokemon'][k]['orig_ident'] = json_message['side']['pokemon'][k]['ident']
+                    ident = json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '')
+                    self.info['pokemon'][k]['ident'] = ident
                     ind = self.info['pokemon'][k]['details'].index(', L') + 3
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
                     self.info['pokemon'][k]['type'] = Battle.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
                     self.info['pokemon'][k]['status'] = set([])
+                    self.pok_map[ident] = k
                     
                 self.info['opp_id'] = str(3-int(self.info['id']))
                 self.info['opp_pokemon'] = [{} for k in range(6)]
-                self.first_info = True
             if 'active' in json_message.keys():
                 
                 self.info['active_pokemon'] = json_message['active'][0]
@@ -109,19 +123,27 @@ class Battle():
                         self.info['pokemon'][i]['condition'] = 0
                     
                     if json_message['side']['pokemon'][i]['active'] == True:
-                        self.info['active'] = i
+                        if not self.first_info:
+                            self.info['active'] = self.pok_map[ident]
+                        else:
+                            self.info['active'] = self.pok_map[json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '')]
             if 'forceSwitch' in json_message.keys():
                 self.move_required = MoveType.BATTLE_SWITCH
                 
-    
+
+            self.first_info = True
         if '|turn|' in message or '|start' in message:
             
             if '|move|p' + self.info['opp_id'] in message:
                 line = message.split('|move|p' + self.info['opp_id']+'a: ')[1]
                 move = line.split('|')[1].lower().replace(' ', '')
                 self.info['opp_pokemon'][self.info['opp_active']]['moves'].add(move)
-            if '|switch|p' + self.info['opp_id'] in message:
-                line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1].lower()
+            if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:
+                if '|switch|p' + self.info['opp_id'] in message:
+                    line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1].lower()
+                else:
+                    line = message.split('|drag|p' + self.info['opp_id']+'a: ')[1].lower()
+                    
                 opp_active = line[:line.index('\n')].split('|')
                 level = int(opp_active[1].split(', ')[1][1:])
                 
@@ -146,9 +168,15 @@ class Battle():
                 self.info['opp_pokemon'][index]['condition'] = int(cond.split('/')[0])
                 self.info['opp_active'] = index
                 
-            if '|-damage|p' + self.info['opp_id'] in message or '|heal|p' + self.info['opp_id'] in message:
-                cond = message[max(message.rfind('|-damage|p' + self.info['opp_id']), message.rfind('|-damage|p' + self.info['opp_id']))+10:].split('|')[1]
-                self.info['opp_pokemon'][self.info['opp_active']]['condition'] -= int(cond.split('/')[0])
+            if '|-damage|p' + self.info['opp_id'] in message or '|-heal|p' + self.info['opp_id'] in message:
+                cond = message[max(message.rfind('|-damage|p' + self.info['opp_id']), message.rfind('|-heal|p' + self.info['opp_id']))+10:].split('|')[1]
+                self.info['opp_pokemon'][self.info['opp_active']]['condition'] = int(cond.split('/')[0])
+                
+            if '|-status|p' + self.info['opp_id'] in message:
+                status_message = message.split('|-status|p' + self.info['opp_id'])[1:]
+                for line in status_message:
+                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[9:line.index('\n')])
+                    
             if '|-start|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-start|p' + self.info['opp_id'])[1:]
                 for line in status_message:
@@ -158,7 +186,12 @@ class Battle():
                 status_message = message.split('|-end|p' + self.info['opp_id'])[1:]
                 for line in status_message:
                     self.info['opp_pokemon'][self.info['opp_active']]['status'].remove(line[9:line.index('\n')])
-                    
+             
+            if '|-status|p' + self.info['id'] in message:
+                status_message = message.split('|-status|p' + self.info['id'])[1:]
+                for line in status_message:
+                    self.info['pokemon'][self.info['active']]['status'].add(line[10:line.index('\n')].split('|')[1])
+               
             if '|-start|p' + self.info['id'] in message:
                 status_message = message.split('|-start|p' + self.info['id'])[1:]
                 for line in status_message:
@@ -253,18 +286,16 @@ class Battle():
             
             ##Need to implement accounting for increased crit chance in some situations
             crit_multi = 1.0625
-            
-            
+                        
         if typ in attacker['type']:
             STAB_multi = 1.5
         else:
             STAB_multi = 1
             
         multiplier = weather_multi*crit_multi*random_multi*STAB_multi*type_multi*burn_multi*other_multi
-        damage = ((((((2*attacker['level'])/5)+2)*atk*power/de)/50)+2)*multiplier
+        damage = (((((((2*attacker['level'])/5)+2)*atk*power)/de)/50)+2)*multiplier
         
         percentage = min(defender['condition'], (100*damage)//defender['stats']['hp'])
-        print(move)
         return percentage
             
             
