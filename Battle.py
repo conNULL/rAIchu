@@ -18,7 +18,6 @@ class Battle():
         self.info = {}
         self.opp_pokemon = []
         self.pok_map = {}
-        self.ret_pok_map = {}
         self.move_required = MoveType.NONE
         self.first_info = False
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
@@ -63,7 +62,7 @@ class Battle():
         if self.move_required == MoveType.BATTLE_ACTION or self.move_required == MoveType.BATTLE_SWITCH:
             
             for i in range(len(self.info['pokemon'])):
-                if self.info['pokemon'][i]['active'] == False and self.info['pokemon'][i]['condition'] != 0:
+                if i != self.info['active'] and self.info['pokemon'][i]['condition'] != 0:
                     moves.append('switch ' + self.ret_pok_map[self.info['pokemon'][i]['orig_ident']])
         if self.move_required == MoveType.BATTLE_ACTION:
             for i in range(len(self.info['active_pokemon']['moves'])):
@@ -106,7 +105,6 @@ class Battle():
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
                     self.info['pokemon'][k]['type'] = Battle.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
                     self.info['pokemon'][k]['status'] = set([])
-                    self.pok_map[ident] = k
                     
                 self.info['opp_id'] = str(3-int(self.info['id']))
                 self.info['opp_pokemon'] = [{} for k in range(6)]
@@ -114,7 +112,6 @@ class Battle():
                 
                 self.info['active_pokemon'] = json_message['active'][0]
                 for i in range(len(self.info['pokemon'])):
-                    
                     cond = json_message['side']['pokemon'][i]['condition']
                     if cond != '0 fnt':
                         cur = (100*int(cond.split('/')[0]))//int(cond.split('/')[1].split(' ')[0])
@@ -123,21 +120,31 @@ class Battle():
                         self.info['pokemon'][i]['condition'] = 0
                     
                     if json_message['side']['pokemon'][i]['active'] == True:
-                        if not self.first_info:
-                            self.info['active'] = self.pok_map[ident]
-                        else:
-                            self.info['active'] = self.pok_map[json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '')]
+                        self.info['active'] = i
+                        
             if 'forceSwitch' in json_message.keys():
                 self.move_required = MoveType.BATTLE_SWITCH
                 
 
             self.first_info = True
-        if '|turn|' in message or '|start' in message:
+        if '|choice|' in message or '|start' in message:
             
             if '|move|p' + self.info['opp_id'] in message:
                 line = message.split('|move|p' + self.info['opp_id']+'a: ')[1]
                 move = line.split('|')[1].lower().replace(' ', '')
                 self.info['opp_pokemon'][self.info['opp_active']]['moves'].add(move)
+                
+            if '|switch|p' + self.info['id'] in message or '|drag|p' + self.info['id'] in message:
+                if '|switch|p' + self.info['id'] in message:
+                    line = message.split('|switch|p' + self.info['id']+'a: ')[1].lower()
+                else:
+                    line = message.split('|drag|p' + self.info['id']+'a: ')[1].lower()
+                    
+                active = line[:line.index('\n')].split('|')[0]
+                for k in range(len(self.info['pokemon'])):
+                    if active == self.info['pokemon'][k]['ident']:
+                        self.info['active'] = k
+                        
             if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:
                 if '|switch|p' + self.info['opp_id'] in message:
                     line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1].lower()
@@ -170,7 +177,11 @@ class Battle():
                 
             if '|-damage|p' + self.info['opp_id'] in message or '|-heal|p' + self.info['opp_id'] in message:
                 cond = message[max(message.rfind('|-damage|p' + self.info['opp_id']), message.rfind('|-heal|p' + self.info['opp_id']))+10:].split('|')[1]
-                self.info['opp_pokemon'][self.info['opp_active']]['condition'] = int(cond.split('/')[0])
+                
+                if 'fnt' in cond:
+                    self.info['opp_pokemon'][self.info['opp_active']]['condition'] = 0
+                else:
+                    self.info['opp_pokemon'][self.info['opp_active']]['condition'] = int(cond.split('/')[0])
                 
             if '|-status|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-status|p' + self.info['opp_id'])[1:]
@@ -202,8 +213,9 @@ class Battle():
                 for line in status_message:
                     self.info['pokemon'][self.info['active']]['status'].remove(line[10:line.index('\n')].split('|')[2])
             
-            #print(self.info['opp_pokemon'])
+        if '|turn|' in message:
             self.move_required = MoveType.BATTLE_ACTION
+            
         if '|faint|' in message:
             id = message.split('faint|p')[1].split('a')[0]
             if id == self.info['id']:
