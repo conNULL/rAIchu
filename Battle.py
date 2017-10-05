@@ -186,32 +186,32 @@ class Battle():
             if '|-status|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-status|p' + self.info['opp_id'])[1:]
                 for line in status_message:
-                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[9:line.index('\n')])
+                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[:line.index('\n')].split('|')[1])
                     
             if '|-start|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-start|p' + self.info['opp_id'])[1:]
                 for line in status_message:
-                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[9:line.index('\n')])
+                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[:line.index('\n')].split('|')[1])
                     
             if '|-end|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-end|p' + self.info['opp_id'])[1:]
                 for line in status_message:
-                    self.info['opp_pokemon'][self.info['opp_active']]['status'].remove(line[9:line.index('\n')])
+                    self.info['opp_pokemon'][self.info['opp_active']]['status'].remove(line[:line.index('\n')].split('|')[1])
              
             if '|-status|p' + self.info['id'] in message:
                 status_message = message.split('|-status|p' + self.info['id'])[1:]
                 for line in status_message:
-                    self.info['pokemon'][self.info['active']]['status'].add(line[10:line.index('\n')].split('|')[1])
+                    self.info['pokemon'][self.info['active']]['status'].add(line[:line.index('\n')].split('|')[1])
                
             if '|-start|p' + self.info['id'] in message:
                 status_message = message.split('|-start|p' + self.info['id'])[1:]
                 for line in status_message:
-                    self.info['pokemon'][self.info['active']]['status'].add(line[10:line.index('\n')].split('|')[1])
+                    self.info['pokemon'][self.info['active']]['status'].add(line[:line.index('\n')].split('|')[1])
                     
             if '|-end|p' + self.info['id'] in message:
                 status_message = message.split('|-end|p' + self.info['id'])[1:]
                 for line in status_message:
-                    self.info['pokemon'][self.info['active']]['status'].remove(line[10:line.index('\n')].split('|')[2])
+                    self.info['pokemon'][self.info['active']]['status'].remove(line[:line.index('\n')].split('|')[1])
             
         if '|turn|' in message:
             self.move_required = MoveType.BATTLE_ACTION
