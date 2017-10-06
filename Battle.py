@@ -27,6 +27,9 @@ class Battle():
         Battle.ai = ai
         Battle.tag = tag
         Battle.load_resources(DATA_DIRECTORY)
+        Battle.BOOST_DICT = {'atk': 0, 'def': 0, 'spd': 0, 'spa': 0, 'spe': 0, 'accuracy': 0}
+        Battle.BOOST_MULTI = {-6: 0.25, -5: 0.2857, -4: 0.3333, -3: 0.4, -2: 0.5, -1: 0.66, \
+        0: 1, 1: 1.5, 2: 2, 3:2.5, 4: 3, 5: 3.5, 6: 4}
 
     def load_resources(DATA_DIRECTORY):
         f = open(DATA_DIRECTORY + '/move_dict.txt', 'r')
@@ -68,11 +71,6 @@ class Battle():
             for i in range(len(self.info['active_pokemon']['moves'])):
                 if not self.info['active_pokemon']['moves'][i]['disabled']:
                     moves.append('move ' + str(i+1))
-        # else:
-        #     for i in range(len(self.info['pokemon'])):
-        #         if self.info['pokemon'][i]['active'] == False and self.info['pokemon'][i]['condition'] != 0:
-        #             moves.append('switch ' + self.ret_pok_map[self.info['pokemon'][i]['orig_ident']])
-        # 
         return moves
             
 
@@ -93,7 +91,8 @@ class Battle():
             json_message['side']['pokemon'].sort(key=lambda x: x['ident'])
             
             if not self.first_info:                
-
+            
+                #initalize game state
                 self.info['pokemon'] =  json_message['side']['pokemon'].copy()                  
                 self.info['id'] = self.info['pokemon'][0]['ident'][1]
                 
@@ -104,6 +103,7 @@ class Battle():
                     ind = self.info['pokemon'][k]['details'].index(', L') + 3
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
                     self.info['pokemon'][k]['type'] = Battle.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
+                    self.info['pokemon'][k]['boost'] = Battle.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
                     
                 self.info['opp_id'] = str(3-int(self.info['id']))
@@ -127,8 +127,10 @@ class Battle():
                 
 
             self.first_info = True
+            
         if '|choice|' in message or '|start' in message:
             
+            #update game state
             if '|move|p' + self.info['opp_id'] in message:
                 line = message.split('|move|p' + self.info['opp_id']+'a: ')[1]
                 move = line.split('|')[1].lower().replace(' ', '')
@@ -158,12 +160,12 @@ class Battle():
                     index = len(self.opp_pokemon)
                     self.opp_pokemon.append(opp_active[0])
                     self.info['opp_pokemon'][index]['ident'] = opp_active[0]
-                    #self.info['opp_pokemon'][index]['details'] = opp_active[1]
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
                     self.info['opp_pokemon'][index]['level'] = level
                     self.info['opp_pokemon'][index]['type'] = Battle.pokemon_stats[opp_active[0]]['types']
+                    self.info['opp_pokemon'][index]['boost'] = Battle.BOOST_DICT.copy()
                     self.info['opp_pokemon'][index]['stats'] = Battle.calculate_stats(Battle.pokemon_stats[opp_active[0]]['baseStats'], level)
                     name = opp_active[0].lower().replace(' ', '')
                     if name in Battle.possible_moves.keys():
@@ -212,7 +214,41 @@ class Battle():
                 status_message = message.split('|-end|p' + self.info['id'])[1:]
                 for line in status_message:
                     self.info['pokemon'][self.info['active']]['status'].remove(line[:line.index('\n')].split('|')[1])
-            
+                    
+            if '|-boost|p' + self.info['opp_id'] in message:
+                boost_message = message.split('|-boost|p' + self.info['opp_id'])[1:]
+                for line in boost_message:
+                    boostline = line[:line.index('\n')].split('|')
+                    stat = boostline[1]
+                    val = int(boostline[2])
+                    self.info['opp_pokemon'][self.info['opp_active']]['boost'][stat] += val
+                    
+            if '|-boost|p' + self.info['id'] in message:
+                boost_message = message.split('|-boost|p' + self.info['id'])[1:]
+                for line in boost_message:
+                    boostline = line[:line.index('\n')].split('|')
+                    stat = boostline[1]
+                    val = int(boostline[2])
+                    self.info['pokemon'][self.info['active']]['boost'][stat] += val
+                    
+            if '|-unboost|p' + self.info['opp_id'] in message:
+                boost_message = message.split('|-unboost|p' + self.info['opp_id'])[1:]
+                for line in boost_message:
+                    boostline = line[:line.index('\n')].split('|')
+                    stat = boostline[1]
+                    val = int(boostline[2])
+                    self.info['opp_pokemon'][self.info['opp_active']]['boost'][stat] -= val
+                    
+            if '|-unboost|p' + self.info['id'] in message:
+                boost_message = message.split('|-unboost|p' + self.info['opp_id'])[1:]
+                for line in boost_message:
+                    boostline = line[:line.index('\n')].split('|')
+                    stat = boostline[1]
+                    val = int(boostline[2])
+                    self.info['pokemon'][self.info['active']]['boost'][stat] -= val
+          
+         
+        #update action state
         if '|turn|' in message:
             self.move_required = MoveType.BATTLE_ACTION
             
@@ -224,12 +260,16 @@ class Battle():
                 ident = pokemon[4:pokemon.index('\n')].lower().replace(' ', '').replace('-', '').replace('.', '')
                 print(ident)
                 self.info['pokemon'][self.info['active']]['condition'] = 0
+                
+        #Make a valid move based on action state
         self.make_move()
+        
     def reset_battle_info(self):
         
         self.battle_info = {}
         
     def calculate_stats(base_stats, level):
+        #returns an estimate (expected value) of the stats of a pokemon based on their base stats and level
         
         stats = {}
         for k in base_stats:
@@ -241,19 +281,19 @@ class Battle():
         return stats
         
     def calculate_damage(self, attacker, defender, move, pred_type):
-        #returns damage done as a percentage of defender's hp
+        #returns damage done as a percentage of defender's total hp
         
         category = BattleMove.effects[move]['category']
     
         if category == 'Physical':
             
-            atk = attacker['stats']['atk']
-            de = defender['stats']['def']
+            atk = self.get_stat(attacker, 'atk')
+            de = self.get_stat(defender, 'def')
             
         elif category == 'Special':   
                  
-            atk = attacker['stats']['spa']
-            de = defender['stats']['spd']
+            atk = self.get_stat(attacker, 'spa')
+            de = self.get_stat(defender, 'spd')
             
         else:
             #non-damaging move
@@ -312,7 +352,10 @@ class Battle():
             
             
             
-            
+    def get_stat(self, pokemon, stat):
+        #returns the value of the stat of the pokemon with active boosts taken into account
+        
+        return pokemon['stats'][stat]*Battle.BOOST_MULTI[pokemon['boost'][stat]]
             
             
             
