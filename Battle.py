@@ -9,6 +9,7 @@ from enum import Enum
 import requests
 from RAIchu_Enums import MoveType, AIType, PredictionType
 from BattleMove import BattleMove
+from RAIchu_Utils import RAIchu_Utils
 
 class Battle():
     
@@ -23,22 +24,11 @@ class Battle():
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
         
     def initialize(web_socket, ai, tag, DATA_DIRECTORY):
+        #Class initialization
         Battle.ws = web_socket
         Battle.ai = ai
         Battle.tag = tag
-        Battle.load_resources(DATA_DIRECTORY)
-        Battle.BOOST_DICT = {'atk': 0, 'def': 0, 'spd': 0, 'spa': 0, 'spe': 0, 'accuracy': 0}
-        Battle.BOOST_MULTI = {-6: 0.25, -5: 0.2857, -4: 0.3333, -3: 0.4, -2: 0.5, -1: 0.66, \
-        0: 1, 1: 1.5, 2: 2, 3:2.5, 4: 3, 5: 3.5, 6: 4}
-
-    def load_resources(DATA_DIRECTORY):
-        f = open(DATA_DIRECTORY + '/move_dict.txt', 'r')
-        Battle.possible_moves = json.load(f)
-        f.close()
-        
-        f = open(DATA_DIRECTORY + '/pokemon_stats_dict.txt', 'r')
-        Battle.pokemon_stats = json.load(f)
-        f.close()
+        RAIchu_Utils.load_resources(DATA_DIRECTORY)
         
     def make_move(self):
         
@@ -53,7 +43,7 @@ class Battle():
         
         command = Battle.tag + self.id + '|/'+ command
         if 'move' in command:
-            print('Expected damage: ', self.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['active_pokemon']['moves'][int(command.split(' ')[-1])-1]['id'], PredictionType.EXPECTED))
+            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['active_pokemon']['moves'][int(command.split(' ')[-1])-1]['id'], PredictionType.EXPECTED))
         print('COMMAND', command)
         Battle.ws.send(command)
         self.move_required = MoveType.NONE
@@ -76,9 +66,9 @@ class Battle():
 
     def update_battle_info(self, message):
        
-        if 'Can\'t switch:' in message:
-            print('error--------------------')
+            
         if '|request|{' in message:
+            #update game state for player
                         
             json_message = json.loads(message.split('request|')[1])
             
@@ -102,8 +92,8 @@ class Battle():
                     self.info['pokemon'][k]['ident'] = ident
                     ind = self.info['pokemon'][k]['details'].index(', L') + 3
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
-                    self.info['pokemon'][k]['type'] = Battle.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
-                    self.info['pokemon'][k]['boost'] = Battle.BOOST_DICT.copy()
+                    self.info['pokemon'][k]['type'] = RAIchu_Utils.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
+                    self.info['pokemon'][k]['boost'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
                     
                 self.info['opp_id'] = str(3-int(self.info['id']))
@@ -130,7 +120,7 @@ class Battle():
             
         if '|choice|' in message or '|start' in message:
             
-            #update game state
+            #update game state for turn execution. Message is parsed for |keywords| indicating a change in state.
             if '|move|p' + self.info['opp_id'] in message:
                 line = message.split('|move|p' + self.info['opp_id']+'a: ')[1]
                 move = line.split('|')[1].lower().replace(' ', '')
@@ -164,12 +154,12 @@ class Battle():
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
                     self.info['opp_pokemon'][index]['level'] = level
-                    self.info['opp_pokemon'][index]['type'] = Battle.pokemon_stats[opp_active[0]]['types']
-                    self.info['opp_pokemon'][index]['boost'] = Battle.BOOST_DICT.copy()
-                    self.info['opp_pokemon'][index]['stats'] = Battle.calculate_stats(Battle.pokemon_stats[opp_active[0]]['baseStats'], level)
+                    self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[opp_active[0]]['types']
+                    self.info['opp_pokemon'][index]['boost'] = RAIchu_Utils.BOOST_DICT.copy()
+                    self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[opp_active[0]]['baseStats'], level)
                     name = opp_active[0].lower().replace(' ', '')
-                    if name in Battle.possible_moves.keys():
-                        self.info['opp_pokemon'][index]['possible_moves'] = Battle.possible_moves[name]
+                    if name in RAIchu_Utils.possible_moves.keys():
+                        self.info['opp_pokemon'][index]['possible_moves'] = RAIchu_Utils.possible_moves[name]
                 else:  
                     index = self.opp_pokemon.index(opp_active[0])
                 cond = opp_active[2]
@@ -268,94 +258,7 @@ class Battle():
         
         self.battle_info = {}
         
-    def calculate_stats(base_stats, level):
-        #returns an estimate (expected value) of the stats of a pokemon based on their base stats and level
-        
-        stats = {}
-        for k in base_stats:
-            if k == 'hp':
-                stats[k] = ((2*base_stats[k] + 52)*level//100) + level + 10
-            else:
-                stats[k] = ((2*base_stats[k] + 52)*level//100) + 5
-                
-        return stats
-        
-    def calculate_damage(self, attacker, defender, move, pred_type):
-        #returns damage done as a percentage of defender's total hp
-        
-        category = BattleMove.effects[move]['category']
     
-        if category == 'Physical':
-            
-            atk = self.get_stat(attacker, 'atk')
-            de = self.get_stat(defender, 'def')
-            
-        elif category == 'Special':   
-                 
-            atk = self.get_stat(attacker, 'spa')
-            de = self.get_stat(defender, 'spd')
-            
-        else:
-            #non-damaging move
-            return 0
-            
-        power = BattleMove.effects[move]['basePower']
-        typ = BattleMove.effects[move]['type']
-        
-        type_multi = 1
-        
-        for t in defender['type']:
-            type_multi *= BattleMove.typechart[t][typ]
-        
-        ##To be implemented    
-        weather_multi = 1
-        other_multi = 1
-        
-        if 'burn' in attacker['status'] and category == 'Physical':
-            burn_multi = 0.5
-        else:
-            burn_multi = 1
-            
-        if pred_type == PredictionType.MAX_DAMAGE:
-            crit_multi = 2
-            random_multi = 1
-            
-        elif pred_type == PredictionType.MIN_DAMAGE:
-            crit_multi = 1
-            random_multi = 0.85
-            
-        elif pred_type == PredictionType.RANDOM:
-            val = random.randint(0, 15)
-            random_multi = (85+val)/100
-            val = random.randint(0, 15)
-            if val == 0:
-                crit_multi = 2
-            else:
-                crit_multi = 1
-                
-        elif pred_type == PredictionType.EXPECTED:
-            random_multi = 0.925
-            
-            ##Need to implement accounting for increased crit chance in some situations
-            crit_multi = 1.0625
-                        
-        if typ in attacker['type']:
-            STAB_multi = 1.5
-        else:
-            STAB_multi = 1
-            
-        multiplier = weather_multi*crit_multi*random_multi*STAB_multi*type_multi*burn_multi*other_multi
-        damage = (((((((2*attacker['level'])/5)+2)*atk*power)/de)/50)+2)*multiplier
-        
-        percentage = min(defender['condition'], (100*damage)//defender['stats']['hp'])
-        return percentage
-            
-            
-            
-    def get_stat(self, pokemon, stat):
-        #returns the value of the stat of the pokemon with active boosts taken into account
-        
-        return pokemon['stats'][stat]*Battle.BOOST_MULTI[pokemon['boost'][stat]]
             
             
             
