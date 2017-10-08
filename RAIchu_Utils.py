@@ -4,7 +4,7 @@ from enum import Enum
 from RAIchu_Enums import MoveType, AIType, PredictionType
 from BattleMove import BattleMove
 
-class RAIchu_Utils:
+class RAIchu_Utils():
     
 
 
@@ -14,6 +14,9 @@ class RAIchu_Utils:
         RAIchu_Utils.BOOST_DICT = {'atk': 0, 'def': 0, 'spd': 0, 'spa': 0, 'spe': 0, 'accuracy': 0}
         RAIchu_Utils.BOOST_MULTI = {-6: 0.25, -5: 0.2857, -4: 0.3333, -3: 0.4, -2: 0.5, -1: 0.66, \
         0: 1, 1: 1.5, 2: 2, 3:2.5, 4: 3, 5: 3.5, 6: 4}
+
+        RAIchu_Utils.NUM_POKEMON = 6
+        RAIchu_Utils.NUM_MOVES = 4
         
         f = open(DATA_DIRECTORY + '/move_dict.txt', 'r')
         RAIchu_Utils.possible_moves = json.load(f)
@@ -112,3 +115,38 @@ class RAIchu_Utils:
         if pokemon['boost'][stat] != 0:
             print('ok')
         return pokemon['stats'][stat]*RAIchu_Utils.BOOST_MULTI[pokemon['boost'][stat]]
+        
+    
+    def simulate_move(attacker, defender, move, pred_type):
+        
+        #Simulates the effect of attacker using move on defender and returns defender state after execution.
+        
+        damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
+        
+        defender['condition'] -= damage
+        defender['status'].add(BattleMove.effects[move]['status'])
+        
+        return defender
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
