@@ -10,6 +10,7 @@ import requests
 from RAIchu_Enums import MoveType, AIType, PredictionType
 from BattleMove import BattleMove
 from RAIchu_Utils import RAIchu_Utils
+from Heuristic_Search import Heuristic_Search
 
 class Battle():
     
@@ -40,6 +41,13 @@ class Battle():
         elif self.ai == AIType.RANDOM:
             moves = self.generate_moves()
             command = moves[random.randint(0, len(moves)-1)]
+        elif self.ai == AIType.HEURISTIC_SEARCH:
+            action = Heuristic_Search.get_move(self.info, self.move_required, PredictionType.EXPECTED)
+            print('ACITon', action)
+            if action >= RAIchu_Utils.NUM_POKEMON:
+                command = 'move ' + str(action+1 - RAIchu_Utils.NUM_POKEMON)
+            else:
+                command = 'switch ' + self.ret_pok_map[self.info['pokemon'][action]['orig_ident']]
         
         command = Battle.tag + self.id + '|/'+ command
         if 'move' in command:
@@ -95,6 +103,7 @@ class Battle():
                     self.info['pokemon'][k]['type'] = RAIchu_Utils.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
                     self.info['pokemon'][k]['boost'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
+                    self.info['pokemon'][k]['stats']['hp'] = int(json_message['side']['pokemon'][k]['condition'].split('/')[1].split(' ')[0])
                     
                 self.info['opp_id'] = str(3-int(self.info['id']))
                 self.info['opp_pokemon'] = [{} for k in range(6)]
@@ -146,18 +155,19 @@ class Battle():
                 opp_active = line[:line.index('\n')].split('|')
                 level = int(opp_active[1].split(', ')[1][1:])
                 
-                if not opp_active[0] in self.opp_pokemon:
+
+                name = opp_active[0].lower().replace(' ', '')
+                if not name in self.opp_pokemon:
                     index = len(self.opp_pokemon)
                     self.opp_pokemon.append(opp_active[0])
-                    self.info['opp_pokemon'][index]['ident'] = opp_active[0]
+                    self.info['opp_pokemon'][index]['ident'] = name
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
                     self.info['opp_pokemon'][index]['level'] = level
-                    self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[opp_active[0]]['types']
+                    self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[name]['types']
                     self.info['opp_pokemon'][index]['boost'] = RAIchu_Utils.BOOST_DICT.copy()
-                    self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[opp_active[0]]['baseStats'], level)
-                    name = opp_active[0].lower().replace(' ', '')
+                    self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name]['baseStats'], level)
                     if name in RAIchu_Utils.possible_moves.keys():
                         self.info['opp_pokemon'][index]['possible_moves'] = RAIchu_Utils.possible_moves[name]
                 else:  

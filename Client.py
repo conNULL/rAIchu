@@ -117,7 +117,7 @@ if __name__ == "__main__":
     random_move = True
     NUM_BATTLES = 1
     TAG = 'battle-gen7randombattle-'
-    AI = AIType.RANDOM
+    AI = AIType.HEURISTIC_SEARCH
     DATA_DIRECTORY = 'Battle_data'
     
     websocket.enableTrace(True)

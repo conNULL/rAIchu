@@ -15,7 +15,7 @@ class RAIchu_Utils():
         RAIchu_Utils.BOOST_MULTI = {-6: 0.25, -5: 0.2857, -4: 0.3333, -3: 0.4, -2: 0.5, -1: 0.66, \
         0: 1, 1: 1.5, 2: 2, 3:2.5, 4: 3, 5: 3.5, 6: 4}
 
-        RAIchu_Utils.NUM_POKEMON = 6
+        RAIchu_Utils.NUM_POKEMON = 5 #other than the active pokemon
         RAIchu_Utils.NUM_MOVES = 4
         
         f = open(DATA_DIRECTORY + '/move_dict.txt', 'r')
@@ -41,7 +41,17 @@ class RAIchu_Utils():
     def calculate_damage(attacker, defender, move, pred_type):
         #returns damage done as a percentage of defender's total hp
         
-        category = BattleMove.effects[move]['category']
+        if 'hiddenpower' in move:
+            power = 60
+            if '60' in move:
+                typ = move[11:-2]
+            else:
+                typ = move[11:]
+            category = 'Special'
+        else:
+            power = BattleMove.effects[move]['basePower']
+            typ = BattleMove.effects[move]['type']
+            category = BattleMove.effects[move]['category']
     
         if category == 'Physical':
             
@@ -57,8 +67,6 @@ class RAIchu_Utils():
             #non-damaging move
             return 0
             
-        power = BattleMove.effects[move]['basePower']
-        typ = BattleMove.effects[move]['type']
         
         type_multi = 1
         
@@ -112,8 +120,7 @@ class RAIchu_Utils():
             
     def get_stat(pokemon, stat):
         #returns the value of the stat of the pokemon with active boosts taken into account
-        if pokemon['boost'][stat] != 0:
-            print('ok')
+        
         return pokemon['stats'][stat]*RAIchu_Utils.BOOST_MULTI[pokemon['boost'][stat]]
         
     
@@ -121,10 +128,14 @@ class RAIchu_Utils():
         
         #Simulates the effect of attacker using move on defender and returns defender state after execution.
         
-        damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
-        
-        defender['condition'] -= damage
-        defender['status'].add(BattleMove.effects[move]['status'])
+        if move != 'rest':
+            
+            damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
+            
+            defender['condition'] -= damage
+            
+            if 'status' in BattleMove.effects[move].keys():
+                defender['status'].add(BattleMove.effects[move]['status'])
         
         return defender
         
