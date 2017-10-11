@@ -9,7 +9,7 @@ class Heuristic_Search():
     
     def get_move(state, move_required, pred_type):
         
-        game_state = Battle_State(state, move_required, (-1, -1))
+        game_state = Battle_State(state, move_required, (-2, -2))
         score, move = Heuristic_Search.evaluate_game_state(game_state, 0, Heuristic_Search.MAX_DEPTH, pred_type)
         # if move >= RAIchu_Utils.NUM_POKEMON:
             
@@ -35,29 +35,37 @@ class Heuristic_Search():
         if state.move_required == MoveType.BATTLE_SWITCH:
             
             max_score = -1
+            best_index = -1
             for i in range(len(next_states)):
-                score, index = Heuristic_Search.evaluate_game_state(next_states[i], depth+1, max_depth, pred_type)
-                if score > max_score:
-                    max_score = score
-                    best_index = i
-                    
+                if next_states[i] != -1:
+                    score, index = Heuristic_Search.evaluate_game_state(next_states[i], depth+1, max_depth, pred_type)
+                    if score > max_score:
+                        max_score = score
+                        best_index = i
+            
+            if best_index == -1:
+                return Heuristic_Search.get_score(state), state.prev_action[0]
             return max_score, best_index
             
             
         if state.opp_move_required == MoveType.BATTLE_SWITCH:
-            
             min_score = Heuristic_Search.MAX_SCORE
+            best_index = -1
             for i in range(len(next_states)):
-                score, index = Heuristic_Search.evaluate_game_state(next_states[i], depth+1, max_depth, pred_type)
-                if score < min_score:
-                    min_score = score
-                    best_index = i
-                    
+                if next_states[i] != -1:
+                    score, index = Heuristic_Search.evaluate_game_state(next_states[i], depth+1, max_depth, pred_type)
+                    if score < min_score:
+                        min_score = score
+                        best_index = i
+            
+            if best_index == -1:
+                return Heuristic_Search.get_score(state), state.prev_action[0]
             return min_score, best_index
         
         #If both players are moving, the best score is the minimum score possible if we choose a move to maximize the minimum possible score given any opponent move.
         max_min_score = -1
         max_min_index = -1
+        
         for i in range(len(next_states)):
             min_score = Heuristic_Search.MAX_SCORE
             for j in range(len(next_states[0])):
@@ -65,17 +73,16 @@ class Heuristic_Search():
                 if next_states[i][j] != -1:
                     
                     score, index = Heuristic_Search.evaluate_game_state(next_states[i][j], depth+1, max_depth, pred_type)
-                    
                     if score < min_score:
                         min_score = score
-                    
+                        
             if min_score > max_min_score and min_score < Heuristic_Search.MAX_SCORE:
                 max_min_score = min_score
                 max_min_index = i
                 
             #no possible moves left, the game is over or there is too much uncertainty to make further predictions
-            if max_min_index == -1:
-                return Heuristic_Search.get_score(state), state.prev_action[0]
+        if max_min_index == -1:
+            return Heuristic_Search.get_score(state), state.prev_action[0]
         return max_min_score, max_min_index
         
     def get_score(state):

@@ -21,7 +21,7 @@ class Battle_State():
         
     def generate_player_moves(self):
         
-        if self.opp_move_required == MoveType.BATTLE_SWITCH:
+        if self.move_required == MoveType.NONE:
             return []
             
         moves = [0] *(RAIchu_Utils.NUM_MOVES + RAIchu_Utils.NUM_POKEMON)
@@ -40,7 +40,7 @@ class Battle_State():
         #Generates all moves the opponent could make from the current game state. Considers all possible moves
         #of all pokemon the opponent is known to have.
         
-        if self.move_required == MoveType.BATTLE_SWITCH:
+        if self.opp_move_required == MoveType.NONE:
             return []
             
         moves = [0] *(len(self.info['opp_pokemon'][self.info['opp_active']]['possible_moves']) + RAIchu_Utils.NUM_POKEMON)
@@ -70,20 +70,23 @@ class Battle_State():
         if self.move_required == MoveType.BATTLE_SWITCH:
             
             switches = self.generate_player_moves()
+            next_states = [-1 for k in range(len(switches))]
             
             for i in range(len(switches)):
                 if switches[i] == 1:
-                    next_states.append(self.simulate_action_sequence(i, -1, pred_type))
+                    next_states[i] = self.simulate_action_sequence(i, -1, pred_type)
+                    
             
-        elif self.opp_move_required == MoveType.BATTLE_SWITCH: 
+        if self.opp_move_required == MoveType.BATTLE_SWITCH: 
                    
             switches = self.generate_opponent_moves()
+            next_states = [-1 for k in range(len(switches))]
             
             for i in range(len(switches)):
                 if switches[i] == 1:
-                    next_states.append(self.simulate_action_sequence(-1, i, pred_type))
+                    next_states[i] = self.simulate_action_sequence(-1, i, pred_type)
           
-        else:
+        if self.move_required == MoveType.BATTLE_ACTION and self.opp_move_required == MoveType.BATTLE_ACTION:
             action_sequences = self.generate_action_sequences()
             next_states = action_sequences.copy()
             
@@ -126,20 +129,15 @@ class Battle_State():
             next_state.info['active'] = move
             
             if opp_move >= RAIchu_Utils.NUM_POKEMON:
-                next_state.info['pokemon'][next_state.info['active']] = RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
-            
-                if next_state.info['pokemon'][next_state.info['active']]['condition'] == 0:
-                    next_state.move_required = MoveType.BATTLE_SWITCH
+                RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
+                
                     
         if opp_move < RAIchu_Utils.NUM_POKEMON and opp_move >= 0:
             next_state.info['opp_active'] = opp_move
             
             
             if move >= RAIchu_Utils.NUM_POKEMON:
-                next_state.info['opp_pokemon'][next_state.info['opp_active']] = RAIchu_Utils.simulate_move(next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']]['moves'][move-RAIchu_Utils.NUM_POKEMON], pred_type)
-                
-                if next_state.info['opp_pokemon'][next_state.info['opp_active']]['condition'] == 0:
-                    next_state.opp_move_required = MoveType.BATTLE_SWITCH
+                RAIchu_Utils.simulate_move(next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']]['moves'][move-RAIchu_Utils.NUM_POKEMON], pred_type)
                 
           #if both sides attack, the pokemon with a higher speed stat acts first. If the pokemon with lower speed has no hp left after
           #the pokemon with higher speed attacks, they will not get to attack and will need to switch.
@@ -147,29 +145,31 @@ class Battle_State():
         if move >= RAIchu_Utils.NUM_POKEMON and opp_move >= RAIchu_Utils.NUM_POKEMON:
             if next_state.info['opp_pokemon'][next_state.info['opp_active']]['stats']['spe'] > next_state.info['pokemon'][next_state.info['active']]['stats']['spe']:
                 
-                 next_state.info['pokemon'][next_state.info['active']] = RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
+                 RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
                  
-                 if next_state.info['pokemon'][next_state.info['active']]['condition'] == 0:
-                    next_state.move_required = MoveType.BATTLE_SWITCH
-                 else:
-                        
-                    next_state.info['opp_pokemon'][next_state.info['opp_active']] = RAIchu_Utils.simulate_move(next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']]['moves'][move-RAIchu_Utils.NUM_POKEMON], pred_type)
+                 if next_state.info['pokemon'][next_state.info['active']]['condition'] != 0:
+                    RAIchu_Utils.simulate_move(next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']]['moves'][move-RAIchu_Utils.NUM_POKEMON], pred_type)
                     
-                    if next_state.info['opp_pokemon'][next_state.info['opp_active']]['condition'] == 0:
-                        next_state.opp_move_required = MoveType.BATTLE_SWITCH
-                
             else:
                 
-                next_state.info['opp_pokemon'][next_state.info['opp_active']] = RAIchu_Utils.simulate_move(next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']]['moves'][move-RAIchu_Utils.NUM_POKEMON], pred_type)
+                RAIchu_Utils.simulate_move(next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']]['moves'][move-RAIchu_Utils.NUM_POKEMON], pred_type)
                  
-                if next_state.info['opp_pokemon'][next_state.info['opp_active']]['condition'] == 0:
-                    next_state.opp_move_required = MoveType.BATTLE_SWITCH
-                else:
-                        
-                    next_state.info['pokemon'][next_state.info['active']] = RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']],next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
-                    if next_state.info['pokemon'][next_state.info['active']]['condition'] == 0:
-                        next_state.move_required = MoveType.BATTLE_SWITCH
-                
+                if next_state.info['opp_pokemon'][next_state.info['opp_active']]['condition'] != 0: 
+                    RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']],next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
+                    
+        if next_state.info['pokemon'][next_state.info['active']]['condition'] == 0:
+            next_state.move_required = MoveType.BATTLE_SWITCH
+            next_state.opp_move_required = MoveType.NONE
+        
+        if next_state.info['opp_pokemon'][next_state.info['opp_active']]['condition'] == 0:
+            next_state.move_required = MoveType.NONE
+            next_state.opp_move_required = MoveType.BATTLE_SWITCH
+            
+            #If both pokemon faint on the same turn due to status or recoil
+            if next_state.info['pokemon'][next_state.info['active']]['condition'] == 0:
+                next_state.move_required = MoveType.BATTLE_SWITCH
+            
+            
         return next_state
                 
             

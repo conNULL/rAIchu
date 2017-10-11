@@ -15,7 +15,7 @@ class RAIchu_Utils():
         RAIchu_Utils.BOOST_MULTI = {-6: 0.25, -5: 0.2857, -4: 0.3333, -3: 0.4, -2: 0.5, -1: 0.66, \
         0: 1, 1: 1.5, 2: 2, 3:2.5, 4: 3, 5: 3.5, 6: 4}
 
-        RAIchu_Utils.NUM_POKEMON = 5 #other than the active pokemon
+        RAIchu_Utils.NUM_POKEMON = 6
         RAIchu_Utils.NUM_MOVES = 4
         
         f = open(DATA_DIRECTORY + '/move_dict.txt', 'r')
@@ -134,10 +134,10 @@ class RAIchu_Utils():
             
             defender['condition'] -= damage
             
-            if 'status' in BattleMove.effects[move].keys():
+            if not 'hiddenpower' in move and 'status' in BattleMove.effects[move].keys():
                 defender['status'].add(BattleMove.effects[move]['status'])
         
-        return defender
+        
         
         
         

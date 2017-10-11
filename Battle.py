@@ -43,7 +43,7 @@ class Battle():
             command = moves[random.randint(0, len(moves)-1)]
         elif self.ai == AIType.HEURISTIC_SEARCH:
             action = Heuristic_Search.get_move(self.info, self.move_required, PredictionType.EXPECTED)
-            print('ACITon', action)
+            print('ACTION', action)
             if action >= RAIchu_Utils.NUM_POKEMON:
                 command = 'move ' + str(action+1 - RAIchu_Utils.NUM_POKEMON)
             else:

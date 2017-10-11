@@ -42,7 +42,7 @@ def on_message(ws, message):
             elif (username + '\'s rating:') in message and battle_tag in message:
                 ws.send('|/leave ' + battle_tag)
                 del battles[battle_id]
-                #ws.send('|/battle!')
+                ws.send('|/battle!')
             
             battles[battle_id].update_battle_info(message)
             
