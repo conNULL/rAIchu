@@ -101,9 +101,12 @@ class Battle():
                     ind = self.info['pokemon'][k]['details'].index(', L') + 3
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
                     self.info['pokemon'][k]['type'] = RAIchu_Utils.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
-                    self.info['pokemon'][k]['boost'] = RAIchu_Utils.BOOST_DICT.copy()
+                    self.info['pokemon'][k]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
+                    self.info['pokemon'][k]['volatileStatus'] = set([])
                     self.info['pokemon'][k]['stats']['hp'] = int(json_message['side']['pokemon'][k]['condition'].split('/')[1].split(' ')[0])
+                    self.info['active'] = 0
+                    self.info['opp_active'] = 0
                     
                 self.info['opp_id'] = str(3-int(self.info['id']))
                 self.info['opp_pokemon'] = [{} for k in range(6)]
@@ -144,9 +147,14 @@ class Battle():
                 active = line[:line.index('\n')].split('|')[0]
                 for k in range(len(self.info['pokemon'])):
                     if active == self.info['pokemon'][k]['ident']:
+                        
+                        #volatileStatus clears on switching out
+                        self.info['pokemon'][self.info['active']]['volatileStatus'] = set([])
                         self.info['active'] = k
                         
-            if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:
+            if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:                        
+                #volatileStatus clears on switching out
+                self.info['opp_pokemon'][self.info['opp_active']]['volatileStatus'] = set([])
                 if '|switch|p' + self.info['opp_id'] in message:
                     line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1].lower()
                 else:
@@ -163,10 +171,11 @@ class Battle():
                     self.info['opp_pokemon'][index]['ident'] = name
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
+                    self.info['opp_pokemon'][index]['volatileStatus'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
                     self.info['opp_pokemon'][index]['level'] = level
                     self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[name]['types']
-                    self.info['opp_pokemon'][index]['boost'] = RAIchu_Utils.BOOST_DICT.copy()
+                    self.info['opp_pokemon'][index]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name]['baseStats'], level)
                     if name in RAIchu_Utils.possible_moves.keys():
                         self.info['opp_pokemon'][index]['possible_moves'] = RAIchu_Utils.possible_moves[name]
@@ -193,12 +202,12 @@ class Battle():
             if '|-start|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-start|p' + self.info['opp_id'])[1:]
                 for line in status_message:
-                    self.info['opp_pokemon'][self.info['opp_active']]['status'].add(line[:line.index('\n')].split('|')[1])
+                    self.info['opp_pokemon'][self.info['opp_active']]['volatileStatus'].add(line[:line.index('\n')].split('|')[1])
                     
             if '|-end|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-end|p' + self.info['opp_id'])[1:]
                 for line in status_message:
-                    self.info['opp_pokemon'][self.info['opp_active']]['status'].remove(line[:line.index('\n')].split('|')[1])
+                    self.info['opp_pokemon'][self.info['opp_active']]['volatileStatus'].remove(line[:line.index('\n')].split('|')[1])
              
             if '|-status|p' + self.info['id'] in message:
                 status_message = message.split('|-status|p' + self.info['id'])[1:]
@@ -208,12 +217,12 @@ class Battle():
             if '|-start|p' + self.info['id'] in message:
                 status_message = message.split('|-start|p' + self.info['id'])[1:]
                 for line in status_message:
-                    self.info['pokemon'][self.info['active']]['status'].add(line[:line.index('\n')].split('|')[1])
+                    self.info['pokemon'][self.info['active']]['volatileStatus'].add(line[:line.index('\n')].split('|')[1])
                     
             if '|-end|p' + self.info['id'] in message:
                 status_message = message.split('|-end|p' + self.info['id'])[1:]
                 for line in status_message:
-                    self.info['pokemon'][self.info['active']]['status'].remove(line[:line.index('\n')].split('|')[1])
+                    self.info['pokemon'][self.info['active']]['volatileStatus'].remove(line[:line.index('\n')].split('|')[1])
                     
             if '|-boost|p' + self.info['opp_id'] in message:
                 boost_message = message.split('|-boost|p' + self.info['opp_id'])[1:]
@@ -221,7 +230,7 @@ class Battle():
                     boostline = line[:line.index('\n')].split('|')
                     stat = boostline[1]
                     val = int(boostline[2])
-                    self.info['opp_pokemon'][self.info['opp_active']]['boost'][stat] += val
+                    self.info['opp_pokemon'][self.info['opp_active']]['boosts'][stat] += val
                     
             if '|-boost|p' + self.info['id'] in message:
                 boost_message = message.split('|-boost|p' + self.info['id'])[1:]
@@ -229,7 +238,7 @@ class Battle():
                     boostline = line[:line.index('\n')].split('|')
                     stat = boostline[1]
                     val = int(boostline[2])
-                    self.info['pokemon'][self.info['active']]['boost'][stat] += val
+                    self.info['pokemon'][self.info['active']]['boosts'][stat] += val
                     
             if '|-unboost|p' + self.info['opp_id'] in message:
                 boost_message = message.split('|-unboost|p' + self.info['opp_id'])[1:]
@@ -237,7 +246,7 @@ class Battle():
                     boostline = line[:line.index('\n')].split('|')
                     stat = boostline[1]
                     val = int(boostline[2])
-                    self.info['opp_pokemon'][self.info['opp_active']]['boost'][stat] -= val
+                    self.info['opp_pokemon'][self.info['opp_active']]['boosts'][stat] -= val
                     
             if '|-unboost|p' + self.info['id'] in message:
                 boost_message = message.split('|-unboost|p' + self.info['opp_id'])[1:]
@@ -245,7 +254,7 @@ class Battle():
                     boostline = line[:line.index('\n')].split('|')
                     stat = boostline[1]
                     val = int(boostline[2])
-                    self.info['pokemon'][self.info['active']]['boost'][stat] -= val
+                    self.info['pokemon'][self.info['active']]['boosts'][stat] -= val
           
          
         #update action state

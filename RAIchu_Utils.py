@@ -41,17 +41,10 @@ class RAIchu_Utils():
     def calculate_damage(attacker, defender, move, pred_type):
         #returns damage done as a percentage of defender's total hp
         
-        if 'hiddenpower' in move:
-            power = 60
-            if '60' in move:
-                typ = move[11:-2]
-            else:
-                typ = move[11:]
-            category = 'Special'
-        else:
-            power = BattleMove.effects[move]['basePower']
-            typ = BattleMove.effects[move]['type']
-            category = BattleMove.effects[move]['category']
+        
+        power = BattleMove.effects[move]['basePower']
+        typ = BattleMove.effects[move]['type']
+        category = BattleMove.effects[move]['category']
     
         if category == 'Physical':
             
@@ -121,30 +114,52 @@ class RAIchu_Utils():
     def get_stat(pokemon, stat):
         #returns the value of the stat of the pokemon with active boosts taken into account
         
-        return pokemon['stats'][stat]*RAIchu_Utils.BOOST_MULTI[pokemon['boost'][stat]]
+        return pokemon['stats'][stat]*RAIchu_Utils.BOOST_MULTI[pokemon['boosts'][stat]]
         
     
     def simulate_move(attacker, defender, move, pred_type):
         
         #Simulates the effect of attacker using move on defender and returns defender state after execution.
         
+        #these moves have inconsistent formats from the server messages
         if move != 'rest':
             
+            if 'hiddenpower' in move:
+                move = 'hiddenpower'
+                
             damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
             
             defender['condition'] -= damage
             
-            if not 'hiddenpower' in move and 'status' in BattleMove.effects[move].keys():
+            if 'status' in BattleMove.effects[move].keys():
                 defender['status'].add(BattleMove.effects[move]['status'])
+                
+            if 'volatileStatus' in BattleMove.effects[move].keys():
+                defender['volatileStatus'].add(BattleMove.effects[move]['volatileStatus'])
+        
+            if 'boosts' in BattleMove.effects[move].keys():
+                
+        
+                if BattleMove.effects[move]['target'] == 'self':
+                    RAIchu_Utils.apply_boosts(attacker, BattleMove.effects[move]['boosts'])
+                        
+                else:
+                    RAIchu_Utils.apply_boosts(defender, BattleMove.effects[move]['boosts'])
+                    
+            if 'self' in BattleMove.effects[move].keys() and 'boosts' in BattleMove.effects[move]['self'].keys():
+                
+                RAIchu_Utils.apply_boosts(attacker, BattleMove.effects[move]['self']['boosts'])
+                
         
         
         
         
+    def apply_boosts(pokemon, boost_dict):
         
-        
-        
-        
-        
+        #Applies boosts in boost_dict to pokemon.
+                
+        for boost in boost_dict.keys():                        
+            pokemon['boosts'][boost] += boost_dict[boost]
         
         
         
