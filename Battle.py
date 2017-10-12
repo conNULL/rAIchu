@@ -164,25 +164,30 @@ class Battle():
                 opp_active = line[:line.index('\n')].split('|')
                 level = int(opp_active[1].split(', ')[1][1:])
                 
-
-                name = opp_active[1].split(', ')[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
+                name = opp_active[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
+                name_id = opp_active[1].split(', ')[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
                 
-                if not name in self.opp_pokemon:
+                if name in self.opp_pokemon:
+
+                    index = self.opp_pokemon.index(opp_active[0])
+                else:
+
                     index = len(self.opp_pokemon)
-                    self.opp_pokemon.append(opp_active[0])
-                    self.info['opp_pokemon'][index]['ident'] = name
+                    self.opp_pokemon.append(name)
+                    self.info['opp_pokemon'][index]['ident'] = ''
+                    
+                if not name_id == self.info['opp_pokemon'][index]['ident']:
+                    self.info['opp_pokemon'][index]['ident'] = name_id
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['volatileStatus'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
                     self.info['opp_pokemon'][index]['level'] = level
-                    self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[name]['types']
+                    self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[name_id]['types']
                     self.info['opp_pokemon'][index]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
-                    self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name]['baseStats'], level)
-                    if name in RAIchu_Utils.possible_moves.keys():
-                        self.info['opp_pokemon'][index]['possible_moves'] = RAIchu_Utils.possible_moves[name]
-                else:  
-                    index = self.opp_pokemon.index(opp_active[0])
+                    self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name_id]['baseStats'], level)
+                    if name_id in RAIchu_Utils.possible_moves.keys():
+                        self.info['opp_pokemon'][index]['possible_moves'] = RAIchu_Utils.possible_moves[name_id]
                 cond = opp_active[2]
                 
                 self.info['opp_pokemon'][index]['condition'] = int(cond.split('/')[0])
