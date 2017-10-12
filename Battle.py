@@ -23,6 +23,7 @@ class Battle():
         self.move_required = MoveType.NONE
         self.first_info = False
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
+        Battle.ws.send(Battle.tag + self.id + '|/timer on')
         
     def initialize(web_socket, ai, tag, DATA_DIRECTORY):
         #Class initialization
@@ -96,7 +97,7 @@ class Battle():
                 
                 for k in range(len(self.info['pokemon'])):
                     self.info['pokemon'][k]['orig_ident'] = json_message['side']['pokemon'][k]['ident']
-                    ident = json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '')
+                    ident = json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
                     self.info['pokemon'][k]['ident'] = ident
                     ind = self.info['pokemon'][k]['details'].index(', L') + 3
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
@@ -164,7 +165,7 @@ class Battle():
                 level = int(opp_active[1].split(', ')[1][1:])
                 
 
-                name = opp_active[0].lower().replace(' ', '')
+                name = opp_active[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
                 if not name in self.opp_pokemon:
                     index = len(self.opp_pokemon)
                     self.opp_pokemon.append(opp_active[0])
