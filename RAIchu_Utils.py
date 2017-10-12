@@ -2,7 +2,7 @@ import random
 import json
 from enum import Enum
 from RAIchu_Enums import MoveType, AIType, PredictionType
-from BattleMove import BattleMove
+from Battle_Resources import Battle_Resources
 
 class RAIchu_Utils():
     
@@ -42,9 +42,9 @@ class RAIchu_Utils():
         #returns damage done as a percentage of defender's total hp
         
         
-        power = BattleMove.effects[move]['basePower']
-        typ = BattleMove.effects[move]['type']
-        category = BattleMove.effects[move]['category']
+        power = Battle_Resources.effects[move]['basePower']
+        typ = Battle_Resources.effects[move]['type']
+        category = Battle_Resources.effects[move]['category']
     
         if category == 'Physical':
             
@@ -64,7 +64,7 @@ class RAIchu_Utils():
         type_multi = 1
         
         for t in defender['type']:
-            type_multi *= BattleMove.typechart[t][typ]
+            type_multi *= Battle_Resources.typechart[t][typ]
         
         ##To be implemented    
         weather_multi = 1
@@ -131,24 +131,24 @@ class RAIchu_Utils():
             
             defender['condition'] -= damage
             
-            if 'status' in BattleMove.effects[move].keys():
-                defender['status'].add(BattleMove.effects[move]['status'])
+            if 'status' in Battle_Resources.effects[move].keys():
+                defender['status'].add(Battle_Resources.effects[move]['status'])
                 
-            if 'volatileStatus' in BattleMove.effects[move].keys():
-                defender['volatileStatus'].add(BattleMove.effects[move]['volatileStatus'])
+            if 'volatileStatus' in Battle_Resources.effects[move].keys():
+                defender['volatileStatus'].add(Battle_Resources.effects[move]['volatileStatus'])
         
-            if 'boosts' in BattleMove.effects[move].keys():
+            if 'boosts' in Battle_Resources.effects[move].keys():
                 
         
-                if BattleMove.effects[move]['target'] == 'self':
-                    RAIchu_Utils.apply_boosts(attacker, BattleMove.effects[move]['boosts'])
+                if Battle_Resources.effects[move]['target'] == 'self':
+                    RAIchu_Utils.apply_boosts(attacker, Battle_Resources.effects[move]['boosts'])
                         
                 else:
-                    RAIchu_Utils.apply_boosts(defender, BattleMove.effects[move]['boosts'])
+                    RAIchu_Utils.apply_boosts(defender, Battle_Resources.effects[move]['boosts'])
                     
-            if 'self' in BattleMove.effects[move].keys() and 'boosts' in BattleMove.effects[move]['self'].keys():
+            if 'self' in Battle_Resources.effects[move].keys() and 'boosts' in Battle_Resources.effects[move]['self'].keys():
                 
-                RAIchu_Utils.apply_boosts(attacker, BattleMove.effects[move]['self']['boosts'])
+                RAIchu_Utils.apply_boosts(attacker, Battle_Resources.effects[move]['self']['boosts'])
                 
         
         

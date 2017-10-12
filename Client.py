@@ -9,7 +9,7 @@ from enum import Enum
 import requests
 from Battle import Battle
 from RAIchu_Enums import MoveType, AIType
-from BattleMove import BattleMove
+from Battle_Resources import Battle_Resources
 
           
 def on_message(ws, message):
@@ -128,5 +128,5 @@ if __name__ == "__main__":
     ws.on_open = on_open
     battles = {}
     Battle.initialize(ws, AI,TAG, DATA_DIRECTORY)
-    BattleMove.initialize(DATA_DIRECTORY)
+    Battle_Resources.initialize(DATA_DIRECTORY)
     ws.run_forever()

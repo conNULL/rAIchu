@@ -8,7 +8,7 @@ import random
 from enum import Enum
 import requests
 from RAIchu_Enums import MoveType, AIType, PredictionType
-from BattleMove import BattleMove
+from Battle_Resources import Battle_Resources
 from RAIchu_Utils import RAIchu_Utils
 from Heuristic_Search import Heuristic_Search
 
@@ -165,7 +165,8 @@ class Battle():
                 level = int(opp_active[1].split(', ')[1][1:])
                 
 
-                name = opp_active[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
+                name = opp_active[1].split(', ')[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
+                
                 if not name in self.opp_pokemon:
                     index = len(self.opp_pokemon)
                     self.opp_pokemon.append(opp_active[0])

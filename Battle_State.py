@@ -2,7 +2,7 @@ import json
 import random
 from enum import Enum
 from RAIchu_Enums import MoveType, AIType, PredictionType
-from BattleMove import BattleMove
+from Battle_Resources import Battle_Resources
 from RAIchu_Utils import RAIchu_Utils
 import copy
 
