@@ -1,7 +1,7 @@
 import random
 import json
 from enum import Enum
-from RAIchu_Enums import MoveType, AIType, PredictionType
+from RAIchu_Enums import MoveType, AIType, PredictionType, Player
 from Battle_Resources import Battle_Resources
 
 class RAIchu_Utils():
@@ -160,6 +160,23 @@ class RAIchu_Utils():
                 
         for boost in boost_dict.keys():                        
             pokemon['boosts'][boost] += boost_dict[boost]
+            
+    def apply_switch(state, player, next_active):
+        #Applies the effects of switching the active pokemon
+                      
+        #volatileStatus and boosts clear on switching out
+        if player == Player.SELF:
+
+            state.info['pokemon'][state.info['active']]['volatileStatus'] = set([])
+            state.info['pokemon'][state.info['active']]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
+            state.info['active'] = next_active
+            
+        else:
+
+            state.info['opp_pokemon'][state.info['opp_active']]['volatileStatus'] = set([])
+            state.info['opp_pokemon'][state.info['opp_active']]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
+            state.info['opp_active'] = next_active
+            
         
         
         

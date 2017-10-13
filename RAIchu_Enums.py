@@ -35,3 +35,8 @@ class PredictionType(Enum):
     WORST_CASE = 3
     EXPECTED = 4
     RANDOM = 5
+    
+class Player(Enum):
+    
+    SELF = 0
+    OPPONENT = 1

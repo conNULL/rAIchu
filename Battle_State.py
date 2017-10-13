@@ -1,7 +1,7 @@
 import json
 import random
 from enum import Enum
-from RAIchu_Enums import MoveType, AIType, PredictionType
+from RAIchu_Enums import MoveType, AIType, PredictionType, Player
 from Battle_Resources import Battle_Resources
 from RAIchu_Utils import RAIchu_Utils
 import copy
@@ -126,14 +126,14 @@ class Battle_State():
         
         #Switches always happen first. Relative order of switches does not matter.
         if move < RAIchu_Utils.NUM_POKEMON and move >= 0:
-            next_state.info['active'] = move
+            RAIchu_Utils.apply_switch(next_state, Player.SELF, move)
             
             if opp_move >= RAIchu_Utils.NUM_POKEMON:
                 RAIchu_Utils.simulate_move(next_state.info['opp_pokemon'][next_state.info['opp_active']], next_state.info['pokemon'][next_state.info['active']], next_state.info['opp_pokemon'][next_state.info['opp_active']]['possible_moves'][opp_move-RAIchu_Utils.NUM_POKEMON], pred_type)
                 
                     
         if opp_move < RAIchu_Utils.NUM_POKEMON and opp_move >= 0:
-            next_state.info['opp_active'] = opp_move
+            RAIchu_Utils.apply_switch(next_state, Player.OPPONENT, opp_move)
             
             
             if move >= RAIchu_Utils.NUM_POKEMON:

@@ -7,7 +7,7 @@ import json
 import random
 from enum import Enum
 import requests
-from RAIchu_Enums import MoveType, AIType, PredictionType
+from RAIchu_Enums import MoveType, AIType, PredictionType, Player
 from Battle_Resources import Battle_Resources
 from RAIchu_Utils import RAIchu_Utils
 from Heuristic_Search import Heuristic_Search
@@ -148,14 +148,10 @@ class Battle():
                 active = line[:line.index('\n')].split('|')[0]
                 for k in range(len(self.info['pokemon'])):
                     if active == self.info['pokemon'][k]['ident']:
+                        RAIchu_Utils.apply_switch(self, Player.SELF, k)
                         
-                        #volatileStatus clears on switching out
-                        self.info['pokemon'][self.info['active']]['volatileStatus'] = set([])
-                        self.info['active'] = k
-                        
-            if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:                        
-                #volatileStatus clears on switching out
-                self.info['opp_pokemon'][self.info['opp_active']]['volatileStatus'] = set([])
+            if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:  
+            
                 if '|switch|p' + self.info['opp_id'] in message:
                     line = message.split('|switch|p' + self.info['opp_id']+'a: ')[1].lower()
                 else:
@@ -169,7 +165,7 @@ class Battle():
                 
                 if name in self.opp_pokemon:
 
-                    index = self.opp_pokemon.index(opp_active[0])
+                    index = self.opp_pokemon.index(name)
                 else:
 
                     index = len(self.opp_pokemon)
@@ -180,18 +176,18 @@ class Battle():
                     self.info['opp_pokemon'][index]['ident'] = name_id
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
-                    self.info['opp_pokemon'][index]['volatileStatus'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
+                    self.info['opp_pokemon'][index]['volatileStatus'] = set([])
+                    self.info['opp_pokemon'][index]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['opp_pokemon'][index]['level'] = level
                     self.info['opp_pokemon'][index]['type'] = RAIchu_Utils.pokemon_stats[name_id]['types']
-                    self.info['opp_pokemon'][index]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['opp_pokemon'][index]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name_id]['baseStats'], level)
                     if name_id in RAIchu_Utils.possible_moves.keys():
                         self.info['opp_pokemon'][index]['possible_moves'] = RAIchu_Utils.possible_moves[name_id]
                 cond = opp_active[2]
                 
                 self.info['opp_pokemon'][index]['condition'] = int(cond.split('/')[0])
-                self.info['opp_active'] = index
+                RAIchu_Utils.apply_switch(self, Player.OPPONENT, index)
                 
             if '|-damage|p' + self.info['opp_id'] in message or '|-heal|p' + self.info['opp_id'] in message:
                 cond = message[max(message.rfind('|-damage|p' + self.info['opp_id']), message.rfind('|-heal|p' + self.info['opp_id']))+10:].split('|')[1]
@@ -256,7 +252,7 @@ class Battle():
                     self.info['opp_pokemon'][self.info['opp_active']]['boosts'][stat] -= val
                     
             if '|-unboost|p' + self.info['id'] in message:
-                boost_message = message.split('|-unboost|p' + self.info['opp_id'])[1:]
+                boost_message = message.split('|-unboost|p' + self.info['id'])[1:]
                 for line in boost_message:
                     boostline = line[:line.index('\n')].split('|')
                     stat = boostline[1]
