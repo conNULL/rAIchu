@@ -105,6 +105,7 @@ class Battle():
                     self.info['pokemon'][k]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
                     self.info['pokemon'][k]['volatileStatus'] = set([])
+                    self.info['disabled'] = [0 for k in range(4)]
                     self.info['pokemon'][k]['stats']['hp'] = int(json_message['side']['pokemon'][k]['condition'].split('/')[1].split(' ')[0])
                     self.info['active'] = 0
                     self.info['opp_active'] = 0
@@ -138,7 +139,8 @@ class Battle():
                 line = message.split('|move|p' + self.info['opp_id']+'a: ')[1]
                 move = line.split('|')[1].lower().replace(' ', '')
                 self.info['opp_pokemon'][self.info['opp_active']]['moves'].add(move)
-                
+             
+            #Active pokemon switches
             if '|switch|p' + self.info['id'] in message or '|drag|p' + self.info['id'] in message:
                 if '|switch|p' + self.info['id'] in message:
                     line = message.split('|switch|p' + self.info['id']+'a: ')[1].lower()
@@ -177,6 +179,7 @@ class Battle():
                     self.info['opp_pokemon'][index]['moves'] = set([])
                     self.info['opp_pokemon'][index]['status'] = set([])
                     self.info['opp_pokemon'][index]['ability'] = ''
+                    self.info['opp_pokemon'][index]['item'] = ''
                     self.info['opp_pokemon'][index]['volatileStatus'] = set([])
                     self.info['opp_pokemon'][index]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['opp_pokemon'][index]['level'] = level
@@ -188,7 +191,8 @@ class Battle():
                 
                 self.info['opp_pokemon'][index]['condition'] = int(cond.split('/')[0])
                 RAIchu_Utils.apply_switch(self, Player.OPPONENT, index)
-                
+            
+            #Changes in Condition, damage or heal.    
             if '|-damage|p' + self.info['opp_id'] in message or '|-heal|p' + self.info['opp_id'] in message:
                 cond = message[max(message.rfind('|-damage|p' + self.info['opp_id']), message.rfind('|-heal|p' + self.info['opp_id']))+10:].split('|')[1]
                 
@@ -196,7 +200,8 @@ class Battle():
                     self.info['opp_pokemon'][self.info['opp_active']]['condition'] = 0
                 else:
                     self.info['opp_pokemon'][self.info['opp_active']]['condition'] = int(cond.split('/')[0])
-                
+             
+            #Status and Volatile Status
             if '|-status|p' + self.info['opp_id'] in message:
                 status_message = message.split('|-status|p' + self.info['opp_id'])[1:]
                 for line in status_message:
@@ -226,7 +231,8 @@ class Battle():
                 status_message = message.split('|-end|p' + self.info['id'])[1:]
                 for line in status_message:
                     self.info['pokemon'][self.info['active']]['volatileStatus'].remove(line[:line.index('\n')].split('|')[1])
-                    
+             
+            #Stat boosts
             if '|-boost|p' + self.info['opp_id'] in message:
                 boost_message = message.split('|-boost|p' + self.info['opp_id'])[1:]
                 for line in boost_message:
@@ -258,6 +264,18 @@ class Battle():
                     stat = boostline[1]
                     val = int(boostline[2])
                     self.info['pokemon'][self.info['active']]['boosts'][stat] -= val
+                    
+            #items, we only need to track the opponent's items as we know what our own are
+            if self.info['opp_pokemon'][self.info['opp_active']]['item'] == '' and 'item: ' in message:
+                item_list = message.split('item: ')
+                for i in range(len(item_list)):
+                    ind = item_list[i].rfind('a: ')-1
+                    if item_list[i][ind] == self.info['opp_id']:
+                        self.info['opp_pokemon'][self.info['opp_active']]['item'] = item_list[i+1][:item_list[i+1].index('\n')].lower().replace(' ', '')
+                        break
+                        
+            if '|-enditem|p' + self.info['opp_id'] in message:
+                self.info['opp_pokemon'][self.info['opp_active']]['item'] = 'None'
           
          
         #update action state
