@@ -52,7 +52,7 @@ class Battle():
         
         command = Battle.tag + self.id + '|/'+ command
         if 'move' in command:
-            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['active_pokemon']['moves'][int(command.split(' ')[-1])-1]['id'], PredictionType.EXPECTED))
+            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['pokemon'][self.info['active']]['moves'][int(command.split(' ')[-1])-1], PredictionType.EXPECTED))
         print('COMMAND', command)
         Battle.ws.send(command)
         self.move_required = MoveType.NONE
@@ -67,8 +67,8 @@ class Battle():
                 if i != self.info['active'] and self.info['pokemon'][i]['condition'] != 0:
                     moves.append('switch ' + self.ret_pok_map[self.info['pokemon'][i]['orig_ident']])
         if self.move_required == MoveType.BATTLE_ACTION:
-            for i in range(len(self.info['active_pokemon']['moves'])):
-                if not self.info['active_pokemon']['moves'][i]['disabled']:
+            for i in range(len(self.info['pokemon'][self.info['active']]['moves'])):
+                if self.info['pokemon'][self.info['active']]['disabled'][i] == 0:
                     moves.append('move ' + str(i+1))
         return moves
             
@@ -104,8 +104,9 @@ class Battle():
                     self.info['pokemon'][k]['type'] = RAIchu_Utils.pokemon_stats[self.info['pokemon'][k]['ident']]['types']
                     self.info['pokemon'][k]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
+                    self.info['pokemon'][k]['possible_moves'] = self.info['pokemon'][k]['moves']
                     self.info['pokemon'][k]['volatileStatus'] = set([])
-                    self.info['disabled'] = [0 for k in range(4)]
+                    self.info['disabled'] = [0 for k in range(len(self.info['pokemon'][k]['moves']))]
                     self.info['pokemon'][k]['stats']['hp'] = int(json_message['side']['pokemon'][k]['condition'].split('/')[1].split(' ')[0])
                     self.info['active'] = 0
                     self.info['opp_active'] = 0
@@ -114,7 +115,11 @@ class Battle():
                 self.info['opp_pokemon'] = [{} for k in range(6)]
             if 'active' in json_message.keys():
                 
-                self.info['active_pokemon'] = json_message['active'][0]
+                #self.info['active_pokemon'] = json_message['active'][0]
+                for i in range(len(json_message['active'][0])):
+                    if json_message['active'][0]['moves'][i]['disabled'] == True:
+                        self.info['pokemon'][self.info['active']]['disabled'][i] = 1
+                        
                 for i in range(len(self.info['pokemon'])):
                     cond = json_message['side']['pokemon'][i]['condition']
                     if cond != '0 fnt':
@@ -268,7 +273,7 @@ class Battle():
             #items, we only need to track the opponent's items as we know what our own are
             if self.info['opp_pokemon'][self.info['opp_active']]['item'] == '' and 'item: ' in message:
                 item_list = message.split('item: ')
-                for i in range(len(item_list)):
+                for i in range(len(item_list)-1):
                     ind = item_list[i].rfind('a: ')-1
                     if item_list[i][ind] == self.info['opp_id']:
                         self.info['opp_pokemon'][self.info['opp_active']]['item'] = item_list[i+1][:item_list[i+1].index('\n')].lower().replace(' ', '')

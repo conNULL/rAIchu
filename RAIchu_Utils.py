@@ -41,10 +41,17 @@ class RAIchu_Utils():
     def calculate_damage(attacker, defender, move, pred_type):
         #returns damage done as a percentage of defender's total hp
         
-        
-        power = Battle_Resources.effects[move]['basePower']
-        typ = Battle_Resources.effects[move]['type']
-        category = Battle_Resources.effects[move]['category']
+        #inconsistent message format from server
+        if 'hiddenpower' in move:
+            if '60' in move:
+                move = move[:-2]
+            category = 'Special'
+            power = 60
+            typ = move[11:]
+        else:    
+            power = Battle_Resources.effects[move]['basePower']
+            typ = Battle_Resources.effects[move]['type']
+            category = Battle_Resources.effects[move]['category']
     
         if category == 'Physical':
             
@@ -114,23 +121,43 @@ class RAIchu_Utils():
     def get_stat(pokemon, stat):
         #returns the value of the stat of the pokemon with active boosts taken into account
         
-        return pokemon['stats'][stat]*RAIchu_Utils.BOOST_MULTI[pokemon['boosts'][stat]]
+        s =  pokemon['stats'][stat]*RAIchu_Utils.BOOST_MULTI[pokemon['boosts'][stat]]
         
+        if pokemon['item'] == 'choiceband':
+            if stat == 'atk':
+                s *= 1.5
+        elif pokemon['item'] == 'lifeorb':
+            if stat == 'atk' or stat == 'spa':
+                s *= 1.3
+        elif pokemon['item'] == 'assaultvest':
+            if stat == 'spd':
+                s *= 1.5
+        elif pokemon['item'] == 'choicescarf':
+            if stat == 'spe':
+                s *= 1.5
+        elif pokemon['item'] == 'choicespecs':
+            if stat == 'spa':
+                s *= 1.5
+        elif pokemon['item'] == 'eviolite':
+            if stat == 'def' or stat == 'spd':
+                s*= 1.5
+                
+        return s
     
     def simulate_move(attacker, defender, move, pred_type):
         
         #Simulates the effect of attacker using move on defender and returns defender state after execution.
         
         #these moves have inconsistent formats from the server messages
-        if move != 'rest':
+        if move == 'rest':
+            return
             
-            if 'hiddenpower' in move:
-                move = 'hiddenpower'
+            
                 
-            damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
-            
-            defender['condition'] -= damage
-            
+        damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
+        
+        defender['condition'] -= damage
+        if not 'hiddenpower' in move:
             if 'status' in Battle_Resources.effects[move].keys():
                 defender['status'].add(Battle_Resources.effects[move]['status'])
                 
@@ -150,8 +177,34 @@ class RAIchu_Utils():
                 
                 RAIchu_Utils.apply_boosts(attacker, Battle_Resources.effects[move]['self']['boosts'])
                 
+            if 'recoil' in Battle_Resources.effects[move].keys():
+                attacker['condition'] -= damage * Battle_Resources.effects[move]['recoil'][0]/Battle_Resources.effects[move]['recoil'][1]
+            
+            elif 'drain' in Battle_Resources.effects[move].keys():
+                attacker['condition'] += damage * Battle_Resources.effects[move]['drain'][0]/Battle_Resources.effects[move]['drain'][1]
+            
+            elif 'heal' in Battle_Resources.effects[move].keys():
+                attacker['condition'] += 100 * Battle_Resources.effects[move]['heal'][0]/Battle_Resources.effects[move]['heal'][1]
+                
+            elif 'selfdestruct' in Battle_Resources.effects[move].keys():
+                attacker['condition'] = 0
+                
+            if attacker['condition'] > 100:
+                attacker['condition'] = 100
+                
+            if damage > 0 and attacker['item'] == 'lifeorb':
+                attacker['condition'] -= 10
+        
+                    
+        if 'choice' in attacker['item']:
+            for i in range(len(attacker['moves'])):
+                if attacker['possible_moves'][i] != move:
+                    attacker['disabled'][i] = 1
+          
+           
         
         
+            
         
         
     def apply_boosts(pokemon, boost_dict):
@@ -170,12 +223,14 @@ class RAIchu_Utils():
             state.info['pokemon'][state.info['active']]['volatileStatus'] = set([])
             state.info['pokemon'][state.info['active']]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
             state.info['active'] = next_active
-            
+            state.info['pokemon'][state.info['active']]['disabled']  = [0 for k in range(len(state.info['pokemon'][state.info['active']]['moves']))]
         else:
 
             state.info['opp_pokemon'][state.info['opp_active']]['volatileStatus'] = set([])
             state.info['opp_pokemon'][state.info['opp_active']]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
             state.info['opp_active'] = next_active
+
+            state.info['opp_pokemon'][state.info['opp_active']]['disabled'] = [0 for k in range(len(state.info['opp_pokemon'][state.info['opp_active']]['possible_moves']))]
             
         
         
