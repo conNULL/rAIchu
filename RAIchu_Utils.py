@@ -70,6 +70,8 @@ class RAIchu_Utils():
         
         type_multi = 1
         
+        if (typ == 'ground') and ('Levitate' in RAIchu_Utils.pokemon_stats[defender['ident']]['abilities'].values()) and (not (defender['ability'] != '' and defender['ability'] != 'levitate')):
+            return 0
         for t in defender['type']:
             type_multi *= Battle_Resources.typechart[t][typ]
         
@@ -148,11 +150,7 @@ class RAIchu_Utils():
         
         #Simulates the effect of attacker using move on defender and returns defender state after execution.
         
-        #these moves have inconsistent formats from the server messages
-        if move == 'rest':
-            return
-            
-            
+
                 
         damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
         
@@ -213,6 +211,10 @@ class RAIchu_Utils():
                 
         for boost in boost_dict.keys():                        
             pokemon['boosts'][boost] += boost_dict[boost]
+            if pokemon['boosts'][boost] > 6:
+                pokemon['boosts'][boost] = 6
+            elif pokemon['boosts'][boost] < -6:
+                pokemon['boosts'][boost] = -6
             
     def apply_switch(state, player, next_active):
         #Applies the effects of switching the active pokemon
@@ -229,7 +231,6 @@ class RAIchu_Utils():
             state.info['opp_pokemon'][state.info['opp_active']]['volatileStatus'] = set([])
             state.info['opp_pokemon'][state.info['opp_active']]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
             state.info['opp_active'] = next_active
-
             state.info['opp_pokemon'][state.info['opp_active']]['disabled'] = [0 for k in range(len(state.info['opp_pokemon'][state.info['opp_active']]['possible_moves']))]
             
         

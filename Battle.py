@@ -22,6 +22,7 @@ class Battle():
         self.pok_map = {}
         self.move_required = MoveType.NONE
         self.first_info = False
+        self.active_disabled = [0 for k in range(4)]
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
         Battle.ws.send(Battle.tag + self.id + '|/timer on')
         
@@ -105,8 +106,8 @@ class Battle():
                     self.info['pokemon'][k]['boosts'] = RAIchu_Utils.BOOST_DICT.copy()
                     self.info['pokemon'][k]['status'] = set([])
                     self.info['pokemon'][k]['possible_moves'] = self.info['pokemon'][k]['moves']
-                    self.info['pokemon'][k]['volatileStatus'] = set([])
-                    self.info['disabled'] = [0 for k in range(len(self.info['pokemon'][k]['moves']))]
+                    self.info['pokemon'][k]['volatileStatus'] = set([])                    
+                    self.info['pokemon'][k]['disabled'] = [0 for k in range(len(self.info['pokemon'][k]['moves']))]
                     self.info['pokemon'][k]['stats']['hp'] = int(json_message['side']['pokemon'][k]['condition'].split('/')[1].split(' ')[0])
                     self.info['active'] = 0
                     self.info['opp_active'] = 0
@@ -114,11 +115,12 @@ class Battle():
                 self.info['opp_id'] = str(3-int(self.info['id']))
                 self.info['opp_pokemon'] = [{} for k in range(6)]
             if 'active' in json_message.keys():
+                self.active_disabled = [0 for k in range(len(json_message['active'][0]['moves']))]
                 
                 #self.info['active_pokemon'] = json_message['active'][0]
-                for i in range(len(json_message['active'][0])):
+                for i in range(len(json_message['active'][0]['moves'])):
                     if json_message['active'][0]['moves'][i]['disabled'] == True:
-                        self.info['pokemon'][self.info['active']]['disabled'][i] = 1
+                        self.active_disabled[i] = 1
                         
                 for i in range(len(self.info['pokemon'])):
                     cond = json_message['side']['pokemon'][i]['condition']
@@ -156,6 +158,7 @@ class Battle():
                 for k in range(len(self.info['pokemon'])):
                     if active == self.info['pokemon'][k]['ident']:
                         RAIchu_Utils.apply_switch(self, Player.SELF, k)
+                        
                         
             if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:  
             
@@ -295,7 +298,12 @@ class Battle():
                 ident = pokemon[4:pokemon.index('\n')].lower().replace(' ', '').replace('-', '').replace('.', '')
                 print(ident)
                 self.info['pokemon'][self.info['active']]['condition'] = 0
-                
+            
+            
+        if self.first_info:
+            #need to reset disabled status before making a move
+            self.info['pokemon'][self.info['active']]['disabled'] = self.active_disabled.copy()
+        
         #Make a valid move based on action state
         self.make_move()
         

@@ -35,6 +35,7 @@ class PredictionType(Enum):
     WORST_CASE = 3
     EXPECTED = 4
     RANDOM = 5
+    MOST_LIKELY = 6
     
 class Player(Enum):
     
