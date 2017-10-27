@@ -22,6 +22,7 @@ class Battle():
         self.pok_map = {}
         self.move_required = MoveType.NONE
         self.first_info = False
+        self.locked = False
         self.active_disabled = [0 for k in range(4)]
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
         Battle.ws.send(Battle.tag + self.id + '|/timer on')
@@ -40,11 +41,14 @@ class Battle():
             
         if self.ai == AIType.MANUAL:
             command = input('|/'+ Battle.tag + self.id + ' : ')
+        elif self.locked:
+            command = 'move 1'
+            self.locked = False
         elif self.ai == AIType.RANDOM:
             moves = self.generate_moves()
             command = moves[random.randint(0, len(moves)-1)]
         elif self.ai == AIType.HEURISTIC_SEARCH:
-            action = Heuristic_Search.get_move(self.info, self.move_required, PredictionType.EXPECTED)
+            action = Heuristic_Search.get_move(self.info, self.move_required, PredictionType.MOST_LIKELY)
             print('ACTION', action)
             if action >= RAIchu_Utils.NUM_POKEMON:
                 command = 'move ' + str(action+1 - RAIchu_Utils.NUM_POKEMON)
@@ -53,7 +57,7 @@ class Battle():
         
         command = Battle.tag + self.id + '|/'+ command
         if 'move' in command:
-            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['pokemon'][self.info['active']]['moves'][int(command.split(' ')[-1])-1], PredictionType.EXPECTED))
+            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['pokemon'][self.info['active']]['moves'][int(command.split(' ')[-1])-1], PredictionType.MOST_LIKELY))
         print('COMMAND', command)
         Battle.ws.send(command)
         self.move_required = MoveType.NONE
@@ -61,7 +65,7 @@ class Battle():
     def generate_moves(self):
         
         moves = []
-    
+
         if self.move_required == MoveType.BATTLE_ACTION or self.move_required == MoveType.BATTLE_SWITCH:
             
             for i in range(len(self.info['pokemon'])):
@@ -115,12 +119,16 @@ class Battle():
                 self.info['opp_id'] = str(3-int(self.info['id']))
                 self.info['opp_pokemon'] = [{} for k in range(6)]
             if 'active' in json_message.keys():
-                self.active_disabled = [0 for k in range(len(json_message['active'][0]['moves']))]
                 
-                #self.info['active_pokemon'] = json_message['active'][0]
-                for i in range(len(json_message['active'][0]['moves'])):
-                    if json_message['active'][0]['moves'][i]['disabled'] == True:
-                        self.active_disabled[i] = 1
+                #inconsistent message from server. Only one choice in this situation. (after Outrage, thrash, etc.)
+                if len(json_message['active'][0]['moves']) == 1 and 'trapped' in json_message['active'][0]:
+                    self.locked = True
+                else:
+                    for i in range(len(json_message['active'][0]['moves'])):
+                        if json_message['active'][0]['moves'][i]['disabled'] == True:
+                            self.active_disabled[i] = 1
+                        else:
+                            self.active_disabled[i] = 0
                         
                 for i in range(len(self.info['pokemon'])):
                     cond = json_message['side']['pokemon'][i]['condition']

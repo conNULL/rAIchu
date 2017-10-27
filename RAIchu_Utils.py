@@ -41,6 +41,8 @@ class RAIchu_Utils():
     def calculate_damage(attacker, defender, move, pred_type):
         #returns damage done as a percentage of defender's total hp
         
+        if move == 'nightshade' or move == 'seismictoss':
+            return ((100*attacker['level'])//defender['stats']['hp'])
         #inconsistent message format from server
         if 'hiddenpower' in move:
             if '60' in move:
@@ -106,6 +108,9 @@ class RAIchu_Utils():
             
             ##Need to implement accounting for increased crit chance in some situations
             crit_multi = 1.0625
+        elif pred_type == PredictionType.MOST_LIKELY:
+            random_multi = 0.925
+            crit_multi = 1
                         
         if typ in attacker['type']:
             STAB_multi = 1.5
