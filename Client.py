@@ -3,7 +3,7 @@ import websocket
 import ssl
 import time
 import _thread
-import json
+import ujson as json
 import random
 from enum import Enum
 import requests

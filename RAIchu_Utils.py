@@ -1,5 +1,5 @@
 import random
-import json
+import ujson as json
 from enum import Enum
 from RAIchu_Enums import MoveType, AIType, PredictionType, Player
 from Battle_Resources import Battle_Resources
@@ -161,11 +161,11 @@ class RAIchu_Utils():
         
         defender['condition'] -= damage
         if not 'hiddenpower' in move:
-            if 'status' in Battle_Resources.effects[move].keys():
-                defender['status'].add(Battle_Resources.effects[move]['status'])
+            if 'status' in Battle_Resources.effects[move].keys() and not Battle_Resources.effects[move]['status'] in defender['status']:
+                defender['status'].append(Battle_Resources.effects[move]['status'])
                 
-            if 'volatileStatus' in Battle_Resources.effects[move].keys():
-                defender['volatileStatus'].add(Battle_Resources.effects[move]['volatileStatus'])
+            if 'volatileStatus' in Battle_Resources.effects[move].keys() and not Battle_Resources.effects[move]['volatileStatus'] in defender['volatileStatus']:
+                defender['volatileStatus'].append(Battle_Resources.effects[move]['volatileStatus'])
         
             if 'boosts' in Battle_Resources.effects[move].keys():
                 

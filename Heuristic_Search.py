@@ -5,7 +5,7 @@ from RAIchu_Enums import MoveType, PredictionType
 class Heuristic_Search():
     
     MAX_SCORE = 2401
-    MAX_DEPTH = 2
+    MAX_DEPTH = 3
     
     def get_move(state, move_required, pred_type):
         

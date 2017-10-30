@@ -3,7 +3,7 @@ import websocket
 import ssl
 import time
 import _thread
-import json
+import ujson as json
 import random
 from enum import Enum
 import requests
@@ -48,7 +48,7 @@ class Battle():
             moves = self.generate_moves()
             command = moves[random.randint(0, len(moves)-1)]
         elif self.ai == AIType.HEURISTIC_SEARCH:
-            action = Heuristic_Search.get_move(self.info, self.move_required, PredictionType.MOST_LIKELY)
+            action = Heuristic_Search.get_move(json.dumps(self.info), self.move_required, PredictionType.MOST_LIKELY)
             print('ACTION', action)
             if action >= RAIchu_Utils.NUM_POKEMON:
                 command = 'move ' + str(action+1 - RAIchu_Utils.NUM_POKEMON)
@@ -313,7 +313,10 @@ class Battle():
             self.info['pokemon'][self.info['active']]['disabled'] = self.active_disabled.copy()
         
         #Make a valid move based on action state
+        start = time.time()
         self.make_move()
+        finish = time.time()
+        print('Move Time:', finish - start)
         
     def reset_battle_info(self):
         

@@ -1,16 +1,16 @@
-import json
+import ujson as json
 import random
 from enum import Enum
 from RAIchu_Enums import MoveType, AIType, PredictionType, Player
 from Battle_Resources import Battle_Resources
 from RAIchu_Utils import RAIchu_Utils
-import copy
 
 class Battle_State():
     
-    def __init__(self, current_state, move_required, prev_action):
+    def __init__(self, current_state_str, move_required, prev_action):
         
-        self.info = copy.deepcopy(current_state)
+        self.state_str = current_state_str
+        self.info = json.loads(current_state_str)
         self.move_required = move_required
         self.opp_move_required = MoveType.BATTLE_ACTION
         
@@ -20,7 +20,7 @@ class Battle_State():
       
         
     def generate_player_moves(self):
-        
+
         if self.move_required == MoveType.NONE:
             return []
             
@@ -123,8 +123,8 @@ class Battle_State():
         
     def simulate_action_sequence(self, move, opp_move, pred_type):
         #Simulate what the game state will be the next turn if the given actions are taken. Returns a new Battle_State
-        
-        next_state = Battle_State(self.info, MoveType.BATTLE_ACTION, (move, opp_move))
+        self.update_state_str()
+        next_state = Battle_State(self.state_str, MoveType.BATTLE_ACTION, (move, opp_move))
         
         #Switches always happen first. Relative order of switches does not matter.
         if move < RAIchu_Utils.NUM_POKEMON and move >= 0:
@@ -201,8 +201,12 @@ class Battle_State():
         if next_state.info['pokemon'][next_state.info['active']]['condition'] == 0:
             next_state.move_required = MoveType.BATTLE_SWITCH
             
-            
+
         return next_state
+        
+    def update_state_str(self):
+        
+        self.state_str = json.dumps(self.info)
                 
             
     
