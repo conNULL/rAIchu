@@ -47,7 +47,7 @@ class Battle():
         elif self.ai == AIType.RANDOM:
             moves = self.generate_moves()
             command = moves[random.randint(0, len(moves)-1)]
-        elif self.ai == AIType.HEURISTIC_SEARCH:
+        elif self.ai == AIType.MINIMAX:
             action = Heuristic_Search.get_move(json.dumps(self.info), self.move_required, PredictionType.MOST_LIKELY)
             print('ACTION', action)
             if action >= RAIchu_Utils.NUM_POKEMON:

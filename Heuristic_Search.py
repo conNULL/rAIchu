@@ -73,8 +73,13 @@ class Heuristic_Search():
                 if next_states[i][j] != -1:
                     
                     score, index = Heuristic_Search.evaluate_game_state(next_states[i][j], depth+1, max_depth, pred_type)
+
                     if score < min_score:
                         min_score = score
+                        
+                    #found a move the opponent can make that would give a worse score than the minimum score we got get from making another more. This move can't be the best so dont bother checking other possibilities.
+                    if score < max_min_score:
+                        break
                         
             if min_score > max_min_score and min_score < Heuristic_Search.MAX_SCORE:
                 max_min_score = min_score

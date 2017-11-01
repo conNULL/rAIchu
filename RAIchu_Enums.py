@@ -9,7 +9,7 @@ class MoveType(Enum):
 class AIType(Enum):
     RANDOM = 0
     MANUAL = 1
-    HEURISTIC_SEARCH = 2
+    MINIMAX = 2
     
 class SearchType(Enum):
     

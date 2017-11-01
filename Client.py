@@ -33,9 +33,6 @@ def on_message(ws, message):
                 
                 new_battle = Battle(battle_id)        
                 battles[battle_id] = new_battle
-            elif username + ' has' in message and 'seconds left' in message:
-
-                battles[battle_id].move_required = MoveType.BATTLE_ACTION
             elif '|choice|move batonpass|' in message or '|choice||move uturn' in message:
                 battles[battle_id].move_required = MoveType.BATTLE_SWITCH
                 
@@ -117,7 +114,7 @@ if __name__ == "__main__":
     random_move = True
     NUM_BATTLES = 1
     TAG = 'battle-gen7randombattle-'
-    AI = AIType.HEURISTIC_SEARCH
+    AI = AIType.MINIMAX
     DATA_DIRECTORY = 'Battle_data'
     
     websocket.enableTrace(True)
