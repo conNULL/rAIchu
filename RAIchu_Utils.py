@@ -38,9 +38,11 @@ class RAIchu_Utils():
                 
         return stats
         
-    def calculate_damage(attacker, defender, move, pred_type):
+    def calculate_damage(attacker, defender, attacking_player, field, move, pred_type):
         #returns damage done as a percentage of defender's total hp
         
+        other_multi = 1
+        weather_multi = 1
         if move == 'nightshade' or move == 'seismictoss':
             return ((100*attacker['level'])//defender['stats']['hp'])
         #inconsistent message format from server
@@ -59,11 +61,15 @@ class RAIchu_Utils():
             
             atk = RAIchu_Utils.get_stat(attacker, 'atk')
             de = RAIchu_Utils.get_stat(defender, 'def')
+            if (attacking_player == Player.SELF and 'reflect' in field['opp_side']) or (attacking_player == Player.OPPONENT and 'reflect' in field['side']):
+                other_multi *= 1.5
             
         elif category == 'Special':   
                  
             atk = RAIchu_Utils.get_stat(attacker, 'spa')
             de = RAIchu_Utils.get_stat(defender, 'spd')
+            if (attacking_player == Player.SELF and 'lightscreen' in field['opp_side']) or (attacking_player == Player.OPPONENT and 'lightscreen' in field['side']):
+                other_multi *= 1.5
             
         else:
             #non-damaging move
@@ -77,9 +83,7 @@ class RAIchu_Utils():
         for t in defender['type']:
             type_multi *= Battle_Resources.typechart[t][typ]
         
-        ##To be implemented    
-        weather_multi = 1
-        other_multi = 1
+
         
         if 'burn' in attacker['status'] and category == 'Physical':
             burn_multi = 0.5
@@ -151,13 +155,13 @@ class RAIchu_Utils():
                 
         return s
     
-    def simulate_move(attacker, defender, move, pred_type):
+    def simulate_move(attacker, defender, attacking_player, field, move, pred_type):
         
         #Simulates the effect of attacker using move on defender and returns defender state after execution.
         
 
                 
-        damage = RAIchu_Utils.calculate_damage(attacker, defender, move, pred_type)
+        damage = RAIchu_Utils.calculate_damage(attacker, defender, attacking_player, field, move, pred_type)
         
         defender['condition'] -= damage
         if not 'hiddenpower' in move:
@@ -166,7 +170,7 @@ class RAIchu_Utils():
                 
             if 'volatileStatus' in Battle_Resources.effects[move].keys() and not Battle_Resources.effects[move]['volatileStatus'] in defender['volatileStatus']:
                 defender['volatileStatus'].append(Battle_Resources.effects[move]['volatileStatus'])
-        
+
             if 'boosts' in Battle_Resources.effects[move].keys():
                 
         

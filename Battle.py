@@ -23,6 +23,7 @@ class Battle():
         self.move_required = MoveType.NONE
         self.first_info = False
         self.locked = False
+        self.info['field'] = {'side': set([]), 'opp_side': set([]), 'global': set([])}
         self.active_disabled = [0 for k in range(4)]
         webbrowser.open("https://play.pokemonshowdown.com/" + Battle.tag + id)
         Battle.ws.send(Battle.tag + self.id + '|/timer on')
@@ -57,7 +58,7 @@ class Battle():
         
         command = Battle.tag + self.id + '|/'+ command
         if 'move' in command:
-            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], self.info['pokemon'][self.info['active']]['moves'][int(command.split(' ')[-1])-1], PredictionType.MOST_LIKELY))
+            print('Expected damage: ', RAIchu_Utils.calculate_damage(self.info['pokemon'][self.info['active']], self.info['opp_pokemon'][self.info['opp_active']], Player.SELF, self.info['field'], self.info['pokemon'][self.info['active']]['moves'][int(command.split(' ')[-1])-1], PredictionType.MOST_LIKELY))
         print('COMMAND', command)
         Battle.ws.send(command)
         self.move_required = MoveType.NONE
@@ -248,6 +249,27 @@ class Battle():
                 for line in status_message:
                     self.info['pokemon'][self.info['active']]['volatileStatus'].remove(line[:line.index('\n')].split('|')[1])
              
+            #Side status and effects
+            if '|-sidestart|p' + self.info['opp_id'] in message:
+                status_message = message.split('|-sidestart|p' + self.info['opp_id'])[1:]
+                for line in status_message:
+                    self.info['field']['opp_side'].add(line[:line.index('\n')].split('|')[1].replace('move:', '').replace(' ', '').lower())
+                    
+            if '|-sideend|p' + self.info['opp_id'] in message:
+                status_message = message.split('|-sideend|p' + self.info['opp_id'])[1:]
+                for line in status_message:
+                    self.info['field']['opp_side'].remove(line[:line.index('\n')].split('|')[1].replace('move:', '').replace(' ', '').lower())
+             
+               
+            if '|-sidestart|p' + self.info['id'] in message:
+                status_message = message.split('|-sidestart|p' + self.info['id'])[1:]
+                for line in status_message:
+                    self.info['field']['side'].add(line[:line.index('\n')].split('|')[1].replace('move:', '').replace(' ', '').lower())
+                    
+            if '|-sideend|p' + self.info['id'] in message:
+                status_message = message.split('|-sideend|p' + self.info['id'])[1:]
+                for line in status_message:
+                    self.info['field']['side'].remove(line[:line.index('\n')].split('|')[1].replace('move:', '').replace(' ', '').lower())
             #Stat boosts
             if '|-boost|p' + self.info['opp_id'] in message:
                 boost_message = message.split('|-boost|p' + self.info['opp_id'])[1:]
