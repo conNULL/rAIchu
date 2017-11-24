@@ -169,6 +169,15 @@ class Battle():
                         RAIchu_Utils.apply_switch(self, Player.SELF, k)
                         
                         
+            if '|detailschange|p' + self.info['opp_id'] in message:  
+
+                line = message.split('|detailschange|p' + self.info['opp_id']+'a: ')[1].lower()                    
+                opp_active = line[:line.index('\n')].split('|')
+                name_id = opp_active[1].split(', ')[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
+                self.info['opp_pokemon'][self.info['opp_active']]['ident'] = name_id
+                self.info['opp_pokemon'][self.info['opp_active']]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name_id]['baseStats'], self.info['opp_pokemon'][self.info['opp_active']]['level'])
+                self.info['opp_pokemon'][self.info['opp_active']]['type'] = RAIchu_Utils.pokemon_stats[name_id]['types']
+                
             if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:  
             
                 if '|switch|p' + self.info['opp_id'] in message:
