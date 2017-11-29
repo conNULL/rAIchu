@@ -13,12 +13,12 @@ from Battle_Resources import Battle_Resources
 
           
 def on_message(ws, message):
-    global in_battle
     global battle_tag
-    global move_required
     global username
     global logged_in
     global battles
+    global challenged
+    global BATTLE_STATUS
     
     print(message)
     if logged_in and Battle.tag in message:
@@ -36,6 +36,8 @@ def on_message(ws, message):
             elif '|choice|move batonpass|' in message or '|choice||move uturn' in message:
                 battles[battle_id].move_required = MoveType.BATTLE_SWITCH
                 
+                
+            #This message will only occur when challenging random players and not specific users
             elif (username + '\'s rating:') in message and battle_tag in message:
                 ws.send('|/leave ' + battle_tag)
                 battles[battle_id].reset_battle_info()
@@ -47,6 +49,9 @@ def on_message(ws, message):
         challstr = message[10:]
         print(challstr)
         logged_in = login(challstr, ws)
+    elif BATTLE_STATUS == 'accept challenge' and (not challenged) and '|updatechallenge' in message:
+        challenged = True
+        
     print('--------------------------------')
     
 
@@ -81,20 +86,29 @@ def on_open(ws):
         global battle_info
         global move_required
         global NUM_BATTLES
+        global BATTLE_STATUS
+        global CHALLENGE_USER
         global logged_in
+        global challenged
         
+        challenged = False
         logged_in = False
-        
+        done = False
         while not logged_in:
             time.sleep(1)
          
         for i in range(NUM_BATTLES):
             time.sleep(5)
-            ws.send('|/battle!')
+            if BATTLE_STATUS == 'random':
+                ws.send('|/battle!')
+            elif BATTLE_STATUS == 'send challenge':
+                ws.send('|/challenge ' + CHALLENGE_USER +', gen7randombattle')
             
         for i in range(100000):
             
-            
+            if (not done) and BATTLE_STATUS == 'accept challenge' and challenged:
+                done = True
+                ws.send('|/accept '+ CHALLENGE_USER)# +', gen7randombattle')
                 
             time.sleep(1)
             
@@ -109,6 +123,10 @@ if __name__ == "__main__":
     global random_move
     global manual
     global battles
+    global BATTLE_STATUS
+    global CHALLENGE_USER
+    global BATTLE_TIMER
+    
     
     manual = False
     random_move = True
@@ -116,6 +134,8 @@ if __name__ == "__main__":
     TAG = 'battle-gen7randombattle-'
     AI = AIType.MINIMAX
     DATA_DIRECTORY = 'Battle_data'
+    CHALLENGE_USER = 'conhall'
+    BATTLE_STATUS = 'accept challenge'
     
     websocket.enableTrace(True)
     ws = websocket.WebSocketApp("wss://sim2.psim.us/showdown/websocket",

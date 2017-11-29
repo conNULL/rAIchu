@@ -103,7 +103,7 @@ class Battle():
                 
                 for k in range(len(self.info['pokemon'])):
                     self.info['pokemon'][k]['orig_ident'] = json_message['side']['pokemon'][k]['ident']
-                    ident = json_message['side']['pokemon'][k]['ident'][4:].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
+                    ident = json_message['side']['pokemon'][k]['details'].split(',')[0].lower().replace(' ', '').replace('-', '').replace('.', '').replace('\'', '')
                     self.info['pokemon'][k]['ident'] = ident
                     ind = self.info['pokemon'][k]['details'].index(', L') + 3
                     self.info['pokemon'][k]['level']  = int(self.info['pokemon'][k]['details'][ind:ind+2])
