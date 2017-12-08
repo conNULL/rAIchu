@@ -41,3 +41,9 @@ class Player(Enum):
     
     SELF = 0
     OPPONENT = 1
+    
+class ChallengeStatus(Enum):
+    
+    ACCEPT_CHALLENGE = 0
+    SEND_CHALLENGE = 1
+    RANDOM = 2

@@ -177,6 +177,7 @@ class Battle():
                 self.info['opp_pokemon'][self.info['opp_active']]['ident'] = name_id
                 self.info['opp_pokemon'][self.info['opp_active']]['stats'] = RAIchu_Utils.calculate_stats(RAIchu_Utils.pokemon_stats[name_id]['baseStats'], self.info['opp_pokemon'][self.info['opp_active']]['level'])
                 self.info['opp_pokemon'][self.info['opp_active']]['type'] = RAIchu_Utils.pokemon_stats[name_id]['types']
+                self.info['opp_pokemon'][self.info['opp_active']]['possible_moves'] = RAIchu_Utils.possible_moves[name_id]
                 
             if '|switch|p' + self.info['opp_id'] in message or '|drag|p' + self.info['opp_id'] in message:  
             
@@ -256,7 +257,8 @@ class Battle():
             if '|-end|p' + self.info['id'] in message:
                 status_message = message.split('|-end|p' + self.info['id'])[1:]
                 for line in status_message:
-                    self.info['pokemon'][self.info['active']]['volatileStatus'].remove(line[:line.index('\n')].split('|')[1])
+                    if not 'ability: ' in line:
+                        self.info['pokemon'][self.info['active']]['volatileStatus'].remove(line[:line.index('\n')].split('|')[1])
              
             #Side status and effects
             if '|-sidestart|p' + self.info['opp_id'] in message:

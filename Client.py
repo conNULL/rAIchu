@@ -8,7 +8,7 @@ import random
 from enum import Enum
 import requests
 from Battle import Battle
-from RAIchu_Enums import MoveType, AIType
+from RAIchu_Enums import MoveType, AIType, ChallengeStatus
 from Battle_Resources import Battle_Resources
 
           
@@ -49,7 +49,7 @@ def on_message(ws, message):
         challstr = message[10:]
         print(challstr)
         logged_in = login(challstr, ws)
-    elif BATTLE_STATUS == 'accept challenge' and (not challenged) and '|updatechallenge' in message:
+    elif BATTLE_STATUS == ChallengeStatus.ACCEPT_CHALLENGE and (not challenged) and '|updatechallenge' in message:
         challenged = True
         
     print('--------------------------------')
@@ -78,8 +78,10 @@ def on_close(ws):
     print("### closed ###")
 
 def on_open(ws):
+    global logged_in
     
-    
+
+    logged_in = False
     
     def run(*args):
         global in_battle
@@ -92,21 +94,20 @@ def on_open(ws):
         global challenged
         
         challenged = False
-        logged_in = False
         done = False
         while not logged_in:
             time.sleep(1)
          
         for i in range(NUM_BATTLES):
             time.sleep(5)
-            if BATTLE_STATUS == 'random':
+            if BATTLE_STATUS == ChallengeStatus.RANDOM:
                 ws.send('|/battle!')
-            elif BATTLE_STATUS == 'send challenge':
+            elif BATTLE_STATUS == ChallengeStatus.SEND_CHALLENGE:
                 ws.send('|/challenge ' + CHALLENGE_USER +', gen7randombattle')
             
         for i in range(100000):
             
-            if (not done) and BATTLE_STATUS == 'accept challenge' and challenged:
+            if (not done) and BATTLE_STATUS == ChallengeStatus.ACCEPT_CHALLENGE and challenged:
                 done = True
                 ws.send('|/accept '+ CHALLENGE_USER)# +', gen7randombattle')
                 
@@ -134,8 +135,8 @@ if __name__ == "__main__":
     TAG = 'battle-gen7randombattle-'
     AI = AIType.MINIMAX
     DATA_DIRECTORY = 'Battle_data'
-    CHALLENGE_USER = 'conhall'
-    BATTLE_STATUS = 'accept challenge'
+    CHALLENGE_USER = ''
+    BATTLE_STATUS = ChallengeStatus.RANDOM
     
     websocket.enableTrace(True)
     ws = websocket.WebSocketApp("wss://sim2.psim.us/showdown/websocket",
